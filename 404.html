@@ -61,8 +61,13 @@ const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const fmt = iso => { const d = new Date(iso + 'T12:00'); return d.getDate() + ' ' + MON[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''); };
 const mmss = ms => { const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60); return h ? h + 'h ' + pad(m) + 'm' : m + ':' + pad(t % 60); };
 const INK = '#2a2320';
+// Each phone wears its companion's colours: strawberry for the piggy, banana for the duck.
+const THEMES = {
+  f: { acc: 'oklch(0.66 0.17 18)', soft: 'oklch(0.955 0.03 15)', soft2: 'oklch(0.91 0.06 15)', ink: 'oklch(0.46 0.15 18)', panel: 'oklch(0.94 0.04 14)', dot: 'oklch(0.9 0.05 15)' },
+  m: { acc: 'oklch(0.78 0.15 85)', soft: 'oklch(0.965 0.04 95)', soft2: 'oklch(0.92 0.08 92)', ink: 'oklch(0.46 0.1 75)', panel: 'oklch(0.95 0.055 95)', dot: 'oklch(0.9 0.08 92)' }
+};
 const C = {
-  p1: 'oklch(0.80 0.08 240)', p2: 'oklch(0.80 0.09 150)',
+  p1: 'oklch(0.86 0.12 90)', p2: 'oklch(0.82 0.09 15)',
   green: 'oklch(0.72 0.11 150)', greenSoft: 'oklch(0.94 0.04 150)', greenInk: 'oklch(0.40 0.09 150)',
   amber: 'oklch(0.76 0.12 70)', amberSoft: 'oklch(0.95 0.045 75)', amberInk: 'oklch(0.44 0.1 60)',
   red: 'oklch(0.64 0.15 25)', redSoft: 'oklch(0.94 0.04 25)', redInk: 'oklch(0.48 0.15 25)',
@@ -1386,7 +1391,7 @@ class Component extends DCLogic {
     return (((home || {}).areas || {})[area] || { items: [] }).items.map(inst => { const it = decoById(inst.id); if (!it || SIT[it.slot] == null) return null;
       const [, , bw, bh] = it.box; return { u: inst.u, slot: it.slot, x: (inst.x + bw / 2) / AREA_W * 100, bottom: Math.max(12, 300 - (inst.y + SIT[it.slot] * bh) - 6) }; }).filter(Boolean);
   }
-  setUi(patch) { this.setState(patch, () => { try { localStorage.setItem(KEY + '-ui', JSON.stringify({ uiBig: !!this.state.uiBig, uiCalm: !!this.state.uiCalm, uiMusic: this.state.uiMusic !== false, uiFx: this.state.uiFx !== false, uiDisc: this.state.uiDisc, uiSimple: this.state.uiSimple })); } catch (e) {} }); }
+  setUi(patch) { this.setState(patch, () => { try { localStorage.setItem(KEY + '-ui', JSON.stringify({ uiBig: !!this.state.uiBig, uiCalm: !!this.state.uiCalm, uiMusic: this.state.uiMusic !== false, uiFx: this.state.uiFx !== false, uiDisc: this.state.uiDisc, uiSimple: this.state.uiSimple, uiGlow: this.state.uiGlow })); } catch (e) {} }); }
   undoDeco() {
     const prev = (this._undo || []).pop(); if (!prev) return;
     const areas = JSON.parse(prev);
@@ -2056,12 +2061,12 @@ class Component extends DCLogic {
       ...[[-30, 6], [0, 0], [30, 6], [-60, 18], [60, 18]].map(([r, t]) => R(19, t, 14, 40, c || 'oklch(0.62 0.13 150)', { borderRadius: '50%', transform: `rotate(${r}deg)`, transformOrigin: '50% 100%' })),
       R(10, 42, 32, 28, 'oklch(0.66 0.13 40)', { borderRadius: '4px 4px 10px 10px', boxShadow: 'inset 0 5px 0 oklch(0.6 0.13 40)' }));
     const lamp = (x, len, c, on) => d({ left: x - 26, top: 0, width: 52, height: len + 40 },
-      R(25, 0, 2, len, '#8a7e75'), R(0, len, 52, 26, c || 'oklch(0.75 0.12 60)', { borderRadius: '26px 26px 4px 4px' }),
+      R(25, 0, 2, len, '#7a6e66'), R(0, len, 52, 26, c || 'oklch(0.75 0.12 60)', { borderRadius: '26px 26px 4px 4px' }),
       R(14, len + 22, 24, 10, 'oklch(0.97 0.08 95)', { borderRadius: '0 0 12px 12px', boxShadow: on ? '0 10px 60px 30px oklch(0.95 0.1 90 / .55)' : '0 6px 20px 6px oklch(0.95 0.08 90 / .5)' }));
     const frame = (x, y, w, hh, a, b) => d({ left: x, top: y, width: w, height: hh, background: CREAM, padding: 5, boxSizing: 'border-box', borderRadius: 4, boxShadow: '0 3px 8px rgba(60,40,30,.15)' },
       R(5, 5, w - 10, hh - 10, `linear-gradient(180deg,${a} 55%,${b} 55%)`), R(w * .2, hh * .45, w * .5, hh * .3, b, { borderRadius: '50% 50% 0 0' }));
     const rug = (cx, y, w, c) => R(cx - w / 2, y, w, 30, `repeating-radial-gradient(ellipse at center,${c} 0 10px,color-mix(in oklch,${c},white 25%) 10px 16px)`, { borderRadius: '50%', opacity: .9 });
-    const flags = (y, n) => [R(0, y, 360, 2, '#8a7e75', { transform: 'rotate(1deg)' }), ...Array.from({ length: n }, (_, i) => R(8 + i * (344 / n), y + 1, 22, 26, `oklch(0.78 0.14 ${(i * 67 + 20) % 360})`, { clipPath: 'polygon(0 0,100% 0,50% 100%)', animation: `fidSway ${2.4 + (i % 3) * .4}s ease-in-out infinite`, transformOrigin: '50% 0' }))];
+    const flags = (y, n) => [R(0, y, 360, 2, '#7a6e66', { transform: 'rotate(1deg)' }), ...Array.from({ length: n }, (_, i) => R(8 + i * (344 / n), y + 1, 22, 26, `oklch(0.78 0.14 ${(i * 67 + 20) % 360})`, { clipPath: 'polygon(0 0,100% 0,50% 100%)', animation: `fidSway ${2.4 + (i % 3) * .4}s ease-in-out infinite`, transformOrigin: '50% 0' }))];
     const balloon = (x, y, c, dl) => d({ left: x, top: y, width: 34, height: 110, animation: `fidStem 3.4s ${dl}s ease-in-out infinite`, transformOrigin: '50% 100%' },
       R(0, 0, 34, 42, c, { borderRadius: '50% 50% 48% 48% / 55% 55% 45% 45%', boxShadow: 'inset -6px -6px 0 rgba(0,0,0,.08), inset 6px 6px 0 rgba(255,255,255,.35)' }), R(14, 41, 6, 5, c, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }), R(16, 46, 1.5, 64, '#a89c92'));
     const house = (x, y, w, hh, c, g, door) => d({ left: x, top: y, width: w, height: hh },
@@ -2079,7 +2084,7 @@ class Component extends DCLogic {
       R(r / 2 - 1.5, r * .22, 3, r * .3, INK, { transform: `rotate(${(hr % 12) * 30 + mn / 2}deg)`, transformOrigin: `1.5px ${r * .28}px`, borderRadius: 2 }),
       R(r / 2 - 1, r * .1, 2, r * .42, 'oklch(0.6 0.16 25)', { transform: `rotate(${mn * 6}deg)`, transformOrigin: `1px ${r * .4}px`, borderRadius: 2 }), R(r / 2 - 3, r / 2 - 3, 6, 6, INK, { borderRadius: 3 }));
     const sign = (x, y, w, txt, c, ex) => d({ left: x, top: y, width: w, height: 30, borderRadius: 9, background: c, display: 'flex', alignItems: 'center', justifyContent: 'center', font: "600 15px 'Fredoka',sans-serif", color: CREAM, letterSpacing: '.06em', boxShadow: '0 3px 8px rgba(60,40,30,.15)', ...(ex || {}) }, txt);
-    const chair = (x, y, c, sc) => d({ left: x, top: y, width: 44, height: 70, transform: `scale(${sc || 1})`, transformOrigin: '50% 100%' }, R(4, 0, 36, 40, c, { borderRadius: '10px 10px 4px 4px' }), R(0, 36, 44, 12, c, { borderRadius: 4, filter: 'brightness(.92)' }), R(4, 48, 4, 22, '#8a7e75'), R(36, 48, 4, 22, '#8a7e75'));
+    const chair = (x, y, c, sc) => d({ left: x, top: y, width: 44, height: 70, transform: `scale(${sc || 1})`, transformOrigin: '50% 100%' }, R(4, 0, 36, 40, c, { borderRadius: '10px 10px 4px 4px' }), R(0, 36, 44, 12, c, { borderRadius: 4, filter: 'brightness(.92)' }), R(4, 48, 4, 22, '#7a6e66'), R(36, 48, 4, 22, '#7a6e66'));
     const day = (a, b) => [sky(a || 'oklch(0.8 0.08 235)', b || 'oklch(0.95 0.04 210)'), sun(280, 34, 46), cloud(30, 40, 70), cloud(220, 76, 90, .8)];
     switch (bg) {
       case 'kitchen': return { back: [wall('oklch(0.94 0.045 88)'), win(150, 56, 110, 92, 'oklch(0.82 0.08 230)', 'oklch(0.95 0.04 200)', [sun(70, 10, 26), cloud(10, 30, 50, .5)]), ...curtains(150, 56, 110, 92, 'oklch(0.85 0.07 10)'), lamp(205, 22, 'oklch(0.72 0.11 160)'),
@@ -2120,7 +2125,7 @@ class Component extends DCLogic {
       case 'doctor': return { back: [wall('oklch(0.95 0.025 220)'), win(140, 56, 80, 90, 'oklch(0.82 0.08 230)', 'oklch(0.95 0.04 200)', [cloud(40, 20, 40, .5)]),
         d({ left: 260, top: 50, width: 70, height: 104, background: CREAM, borderRadius: 4, boxShadow: '0 3px 8px rgba(60,40,30,.12)', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, boxSizing: 'border-box', font: "700 13px/1.3 'DM Sans',sans-serif", color: INK, letterSpacing: '.18em' }, h('span', { style: { fontSize: 24 } }, 'E'), 'F P', 'T O Z', h('span', { style: { fontSize: 8 } }, 'L P E D')),
         d({ left: 26, top: 70, width: 74, height: 90, background: CREAM, borderRadius: 8, boxShadow: '0 3px 8px rgba(60,40,30,.12)' }, R(28, 18, 18, 54, 'oklch(0.66 0.16 150)'), R(10, 36, 54, 18, 'oklch(0.66 0.16 150)')),
-        R(10, 230, 140, 26, 'oklch(0.75 0.08 200)', { borderRadius: 10 }), R(16, 236, 128, 14, CREAM, { borderRadius: 6 }), R(20, 256, 8, 62, '#8a7e75'), R(132, 256, 8, 62, '#8a7e75'),
+        R(10, 230, 140, 26, 'oklch(0.75 0.08 200)', { borderRadius: 10 }), R(16, 236, 128, 14, CREAM, { borderRadius: 6 }), R(20, 256, 8, 62, '#7a6e66'), R(132, 256, 8, 62, '#7a6e66'),
         R(214, 236, 140, 14, WOOD, { borderRadius: 4 }), R(224, 250, 120, 68, WOODD), floor(318, 'oklch(0.88 0.03 200)', 'tile')] };
       case 'pharmacy': return { back: [wall('oklch(0.95 0.03 160)'), sign(90, 62, 180, 'APOTHEEK', 'oklch(0.6 0.14 150)', { height: 38, font: "600 20px 'Fredoka',sans-serif" }),
         d({ left: 34, top: 61, width: 40, height: 40, animation: 'fidShine 2s ease-in-out infinite' }, R(13, 0, 14, 40, 'oklch(0.62 0.16 150)', { borderRadius: 3 }), R(0, 13, 40, 14, 'oklch(0.62 0.16 150)', { borderRadius: 3 })),
@@ -2138,7 +2143,7 @@ class Component extends DCLogic {
       case 'counter': return { npcFeet: 318, back: [wall('oklch(0.93 0.03 250)'), sign(220, 72, 110, 'BALIE 3', 'oklch(0.55 0.11 250)', { height: 36, font: "600 18px 'Fredoka',sans-serif" }), frame(30, 50, 80, 64, 'oklch(0.85 0.06 230)', 'oklch(0.72 0.1 140)'), plant(130, 170, .9), R(0, 300, 360, 18, 'oklch(0.85 0.03 250)'), floor(318, 'oklch(0.86 0.03 250)', 'tile')],
         front: [R(190, 156, 170, 110, 'linear-gradient(135deg,rgba(255,255,255,.55),rgba(220,235,250,.25))', { borderRadius: '10px 0 0 0', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,.7)' }), R(180, 262, 180, 16, WOOD, { borderRadius: 5 }), R(186, 278, 174, 142, 'oklch(0.72 0.07 250)'), R(206, 296, 140, 4, 'rgba(255,255,255,.3)', { borderRadius: 2 }),
           d({ left: 300, top: 214, width: 46, height: 40, background: '#3b3430', borderRadius: 4 }, R(4, 4, 38, 28, 'oklch(0.85 0.06 230)', { borderRadius: 2 }))] };
-      case 'station': return { back: [...day('oklch(0.78 0.08 230)', 'oklch(0.94 0.04 200)'), tree(10, 150, 60), tree(290, 140, 70, 'oklch(0.62 0.13 145)'), R(0, 210, 360, 30, 'oklch(0.75 0.03 70)'), R(0, 238, 360, 8, '#8a7e75'), R(0, 262, 360, 8, '#8a7e75'), R(0, 246, 360, 16, `repeating-linear-gradient(90deg,oklch(0.55 0.05 50) 0 8px,transparent 8px 22px)`),
+      case 'station': return { back: [...day('oklch(0.78 0.08 230)', 'oklch(0.94 0.04 200)'), tree(10, 150, 60), tree(290, 140, 70, 'oklch(0.62 0.13 145)'), R(0, 210, 360, 30, 'oklch(0.75 0.03 70)'), R(0, 238, 360, 8, '#7a6e66'), R(0, 262, 360, 8, '#7a6e66'), R(0, 246, 360, 16, `repeating-linear-gradient(90deg,oklch(0.55 0.05 50) 0 8px,transparent 8px 22px)`),
         R(0, 0, 360, 34, 'oklch(0.45 0.08 255)', { boxShadow: '0 6px 12px rgba(0,0,0,.15)' }), R(60, 34, 8, 270, 'oklch(0.45 0.08 255)'), R(292, 34, 8, 270, 'oklch(0.45 0.08 255)'),
         d({ left: 110, top: 70, width: 150, height: 66, background: 'oklch(0.36 0.09 260)', borderRadius: 8, padding: '8px 10px', boxSizing: 'border-box', font: "600 14px/1.45 'Fredoka',sans-serif", color: 'oklch(0.9 0.14 95)', boxShadow: '0 4px 10px rgba(0,0,0,.2)' }, h('div', { style: { display: 'flex', justifyContent: 'space-between' } }, h('span', null, '14:15'), h('span', null, 'Utrecht')), h('div', { style: { display: 'flex', justifyContent: 'space-between', color: CREAM, fontSize: 12 } }, h('span', null, 'spoor 5'), h('span', { style: { animation: 'fidTwinkle 1.6s infinite' } }, 'op tijd'))),
         R(184, 34, 2, 36, '#5e534c'), clock(14, 60, 36, 2, 15), R(0, 290, 360, 12, 'oklch(0.85 0.14 95)'), R(0, 302, 360, 118, 'oklch(0.8 0.015 80)', { background: `repeating-linear-gradient(90deg,transparent 0 44px,rgba(0,0,0,.05) 44px 46px),oklch(0.82 0.015 80)` }),
@@ -2196,7 +2201,7 @@ class Component extends DCLogic {
       case 'pills': return { front: true, el: float(210, 280, 90, 76, R(0, 16, 60, 60, CREAM, { borderRadius: '4px 4px 8px 8px', boxShadow: '0 4px 10px rgba(60,40,30,.2)' }), R(10, 34, 40, 10, 'oklch(0.62 0.16 150)', { borderRadius: 3 }), R(14, 0, 32, 18, 'transparent', { border: '4px solid oklch(0.62 0.16 150)', borderBottom: 'none', borderRadius: '14px 14px 0 0', boxSizing: 'border-box' }),
         R(50, 40, 40, 26, `linear-gradient(90deg,${CREAM} 50%,oklch(0.75 0.13 25) 50%)`, { borderRadius: 4, transform: 'rotate(-10deg)', boxShadow: '0 3px 6px rgba(0,0,0,.15)' })) };
       case 'passport': return { front: true, el: float(234, 170, 64, 86, R(0, 0, 64, 86, 'oklch(0.4 0.12 15)', { borderRadius: 6, boxShadow: '0 8px 16px rgba(60,40,30,.28)', transform: 'rotate(8deg)' }), R(20, 24, 24, 24, 'transparent', { borderRadius: 12, border: '3px solid oklch(0.8 0.12 85)', boxSizing: 'border-box', transform: 'rotate(8deg)' }), d({ left: 6, top: 58, width: 52, textAlign: 'center', font: "600 8px 'DM Sans',sans-serif", letterSpacing: '.1em', color: 'oklch(0.8 0.12 85)', transform: 'rotate(8deg)' }, 'PASPOORT')) };
-      case 'ticket': return { front: true, el: float(240, 166, 56, 74, d({ left: 0, top: 0, width: 56, height: 74, background: CREAM, borderRadius: 4, boxShadow: '0 6px 14px rgba(60,40,30,.22)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', font: "600 26px 'Fredoka',sans-serif", color: INK, transform: 'rotate(-6deg)' }, h('span', { style: { font: "500 9px 'DM Sans',sans-serif", color: '#7a6e66' } }, 'nummer'), '42')) };
+      case 'ticket': return { front: true, el: float(240, 166, 56, 74, d({ left: 0, top: 0, width: 56, height: 74, background: CREAM, borderRadius: 4, boxShadow: '0 6px 14px rgba(60,40,30,.22)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', font: "600 26px 'Fredoka',sans-serif", color: INK, transform: 'rotate(-6deg)' }, h('span', { style: { font: "500 9px 'DM Sans',sans-serif", color: '#695d55' } }, 'nummer'), '42')) };
       case 'form': return { front: true, el: float(96, 226, 92, 70, R(0, 0, 80, 64, `repeating-linear-gradient(180deg,${CREAM} 0 12px,oklch(0.85 0.03 230) 12px 13px)`, { borderRadius: 3, transform: 'rotate(-4deg)', boxShadow: '0 4px 10px rgba(60,40,30,.2)' }), R(10, 46, 34, 8, 'transparent', { borderBottom: '2px solid oklch(0.45 0.12 260)', borderRadius: '0 0 50% 50%' }),
         R(60, 10, 8, 56, 'oklch(0.6 0.15 250)', { borderRadius: '4px 4px 0 0', transform: 'rotate(30deg)', animation: 'fidWiggle .8s ease-in-out infinite' })) };
       case 'train': return { front: false, el: d({ left: 0, top: 150, width: 360, height: 112, animation: 'fidTrainIn 2.4s cubic-bezier(.2,.7,.3,1) both' },
@@ -2316,7 +2321,7 @@ class Component extends DCLogic {
       d({ left: 107, top: 80, width: 6, height: 36, borderRadius: 2, background: 'oklch(0.62 0.06 50)' }),
       d({ left: 52, top: 10, width: 116, height: 76, borderRadius: 10, background: '#fffdf9', boxShadow: '0 4px 14px rgba(42,35,32,.12)', transform: 'rotate(-4deg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8, boxSizing: 'border-box', textAlign: 'center' },
         h('span', { style: { font: "600 15px/1.15 'Fredoka',sans-serif", color: INK } }, 'Gone exploring!'),
-        h('span', { style: { font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' } }, 'back in ' + left)));
+        h('span', { style: { font: "500 12px 'DM Sans',sans-serif", color: '#695d55' } }, 'back in ' + left)));
   }
 
   // Wall, floor and lawn finishes as CSS backgrounds.
@@ -2398,7 +2403,7 @@ class Component extends DCLogic {
       }
       case 'ceil': {
         if (st === 'cozy' || st === 'candy') {
-          const out = [d({ left: -10, top: -34, width: 370, height: 56, borderRadius: '50%', borderBottom: '2px solid #8a7e75', boxSizing: 'border-box' })];
+          const out = [d({ left: -10, top: -34, width: 370, height: 56, borderRadius: '50%', borderBottom: '2px solid #7a6e66', boxSizing: 'border-box' })];
           for (let i = 0; i < 14; i++) {
             const x = 12 + i * 25.5, y = -6 + 27 * Math.sqrt(Math.max(0, 1 - ((x - 175) / 185) ** 2));
             if (st === 'cozy') out.push(d({ left: x - 4, top: y, width: 8, height: 11, borderRadius: '50%', background: 'oklch(0.9 0.12 85)', boxShadow: '0 0 8px oklch(0.88 0.13 80)', animation: `fidTwinkle 1.8s ${(i % 4) * .3}s ease-in-out infinite` }));
@@ -2406,9 +2411,9 @@ class Component extends DCLogic {
           }
           return out;
         }
-        if (st === 'garden') return [70, 300].flatMap(x => [d({ left: x, top: -10, width: 2, height: 44, background: '#8a7e75' }), d({ left: x - 14, top: 32, width: 30, height: 18, borderRadius: '4px 4px 14px 14px', background: P.acc }),
+        if (st === 'garden') return [70, 300].flatMap(x => [d({ left: x, top: -10, width: 2, height: 44, background: '#7a6e66' }), d({ left: x - 14, top: 32, width: 30, height: 18, borderRadius: '4px 4px 14px 14px', background: P.acc }),
           ...[-12, -2, 8, 16].map((dx, i) => d({ left: x + dx, top: 44, width: 5, height: 22 + i * 7, borderRadius: 3, background: 'oklch(0.58 0.12 145)', animation: `fidSway ${2 + i * .4}s ease-in-out infinite`, transformOrigin: '50% 0' }))]);
-        if (st === 'delft') return [d({ left: 251, top: -10, width: 2, height: 30, background: '#8a7e75' }), d({ left: 228, top: 18, width: 48, height: 24, borderRadius: '24px 24px 4px 4px', background: P.main, boxShadow: 'inset 0 -5px 0 ' + W }), d({ left: 216, top: 40, width: 72, height: 50, background: 'radial-gradient(ellipse at 50% 0,oklch(0.96 0.08 90 / .55),transparent 70%)' })];
+        if (st === 'delft') return [d({ left: 251, top: -10, width: 2, height: 30, background: '#7a6e66' }), d({ left: 228, top: 18, width: 48, height: 24, borderRadius: '24px 24px 4px 4px', background: P.main, boxShadow: 'inset 0 -5px 0 ' + W }), d({ left: 216, top: 40, width: 72, height: 50, background: 'radial-gradient(ellipse at 50% 0,oklch(0.96 0.08 90 / .55),transparent 70%)' })];
         return [d({ left: 251, top: -10, width: 2, height: 22, background: P.acc }), d({ left: 216, top: 12, width: 72, height: 36 },
           d({ left: 0, top: 18, width: 72, height: 6, borderRadius: 3, background: P.acc }), d({ left: 26, top: 4, width: 20, height: 24, borderRadius: '50%', background: P.acc }),
           ...[2, 20, 50, 66].map((x, i) => d({ left: x, top: 6, width: 4, height: 12, background: W }, d({ left: -3, top: -10, width: 10, height: 12, borderRadius: '50% 50% 40% 40%', background: 'oklch(0.88 0.13 85)', boxShadow: '0 0 10px oklch(0.88 0.13 85)', animation: `fidTwinkle 1.4s ${i * .3}s ease-in-out infinite` }))),
@@ -2549,7 +2554,7 @@ class Component extends DCLogic {
         const crown = st === 'candy' ? ['oklch(0.86 0.08 350)', 'oklch(0.9 0.06 350)'] : st === 'garden' ? ['oklch(0.6 0.12 145)', 'oklch(0.66 0.12 145)'] : ['oklch(0.6 0.11 145)', 'oklch(0.66 0.11 145)'];
         const extra = st === 'garden' ? [[20, 20], [60, 10], [100, 30], [40, 46], [80, 50], [120, 6]].map(([x, y]) => d({ left: x, top: y, width: 12, height: 12, borderRadius: 6, background: 'oklch(0.62 0.18 25)' }))
           : st === 'candy' ? [[24, 30], [70, 6], [110, 40], [50, 52], [126, 14]].map(([x, y], i) => d({ left: x, top: y, width: 8, height: 8, borderRadius: '50% 0', background: W, animation: `fidFloat 3s ${i * .6}s ease-out infinite`, opacity: 0 }))
-          : [d({ left: 104, top: 72, width: 30, height: 86, animation: 'fidSway 2.4s ease-in-out infinite', transformOrigin: '50% 0' }, d({ left: 2, top: 0, width: 2, height: 78, background: '#8a7e75' }), d({ left: 26, top: 0, width: 2, height: 78, background: '#8a7e75' }), d({ left: -2, top: 76, width: 34, height: 7, borderRadius: 3, background: 'oklch(0.62 0.08 50)' })), d({ left: 44, top: 66, width: 96, height: 9, borderRadius: 5, background: wood })];
+          : [d({ left: 104, top: 72, width: 30, height: 86, animation: 'fidSway 2.4s ease-in-out infinite', transformOrigin: '50% 0' }, d({ left: 2, top: 0, width: 2, height: 78, background: '#7a6e66' }), d({ left: 26, top: 0, width: 2, height: 78, background: '#7a6e66' }), d({ left: -2, top: 76, width: 34, height: 7, borderRadius: 3, background: 'oklch(0.62 0.08 50)' })), d({ left: 44, top: 66, width: 96, height: 9, borderRadius: 5, background: wood })];
         return [d({ left: 30, top: 60, width: 22, height: 128, borderRadius: 6, background: wood }), d({ left: -6, top: -6, width: 110, height: 90, borderRadius: '50%', background: crown[0] }), d({ left: 40, top: -14, width: 100, height: 80, borderRadius: '50%', background: crown[1] }), ...extra];
       }
       case 'water': {
@@ -2577,7 +2582,7 @@ class Component extends DCLogic {
       case 'bench': {
         if (st === 'cozy') return [d({ left: 162, top: 196, width: 80, height: 40, borderRadius: 8, background: 'oklch(0.85 0.12 88)', backgroundImage: 'repeating-linear-gradient(0deg,transparent 0 6px,oklch(0.78 0.12 82) 6px 8px)' }), d({ left: 162, top: 206, width: 80, height: 4, background: 'oklch(0.6 0.12 45)' }), d({ left: 162, top: 222, width: 80, height: 4, background: 'oklch(0.6 0.12 45)' })];
         if (st === 'garden') return [d({ left: 156, top: 176, width: 6, height: 60, background: P.wood }), d({ left: 244, top: 176, width: 6, height: 60, background: P.wood }), d({ left: 160, top: 178, width: 86, height: 36, borderRadius: '0 0 50% 50%', borderBottom: '10px solid ' + P.acc, boxSizing: 'border-box', backgroundImage: 'none' })];
-        if (st === 'candy') return [d({ left: 160, top: 172, width: 88, height: 6, borderRadius: 3, background: P.acc }), d({ left: 172, top: 176, width: 2, height: 36, background: '#8a7e75' }), d({ left: 234, top: 176, width: 2, height: 36, background: '#8a7e75' }), d({ left: 166, top: 210, width: 76, height: 12, borderRadius: 6, background: P.main, animation: 'fidSway 2.8s ease-in-out infinite', transformOrigin: '50% -30px' })];
+        if (st === 'candy') return [d({ left: 160, top: 172, width: 88, height: 6, borderRadius: 3, background: P.acc }), d({ left: 172, top: 176, width: 2, height: 36, background: '#7a6e66' }), d({ left: 234, top: 176, width: 2, height: 36, background: '#7a6e66' }), d({ left: 166, top: 210, width: 76, height: 12, borderRadius: 6, background: P.main, animation: 'fidSway 2.8s ease-in-out infinite', transformOrigin: '50% -30px' })];
         if (st === 'royal') return [d({ left: 166, top: 176, width: 76, height: 40, borderRadius: '30px 30px 4px 4px', background: P.acc, backgroundImage: 'repeating-linear-gradient(90deg,transparent 0 8px,oklch(0.7 0.12 75) 8px 10px)' }), d({ left: 160, top: 210, width: 88, height: 10, borderRadius: 5, background: P.acc }), d({ left: 166, top: 218, width: 5, height: 18, background: P.acc }), d({ left: 238, top: 218, width: 5, height: 18, background: P.acc })];
         return [d({ left: 160, top: 188, width: 88, height: 12, borderRadius: 4, background: P.main }), d({ left: 160, top: 206, width: 88, height: 8, borderRadius: 4, background: P.main }), d({ left: 166, top: 212, width: 6, height: 22, background: P.main }), d({ left: 236, top: 212, width: 6, height: 22, background: P.main })];
       }
@@ -2666,7 +2671,7 @@ class Component extends DCLogic {
     const pigWrap = riding || D ? null : o.still ? d({ left: o.pigX + '%', bottom: 12, transform: 'translateX(-50%)', zIndex: 2, pointerEvents: 'none' }, this.pig(o.pigProps)) : o.away
       ? d({ left: `calc(${o.pigX}% - 65px)`, top: 160, width: 130, height: 70, borderRadius: 10, background: '#fffdf9', boxShadow: '0 4px 14px rgba(42,35,32,.12)', transform: 'rotate(-3deg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, zIndex: 2 },
           h('span', { style: { font: "600 15px 'Fredoka',sans-serif", color: INK } }, 'Gone exploring!'),
-          h('span', { style: { font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' } }, 'back in ' + o.awayLeft))
+          h('span', { style: { font: "500 12px 'DM Sans',sans-serif", color: '#695d55' } }, 'back in ' + o.awayLeft))
       : h('div', { key: 'pig', ...(D ? {} : this.pigHands('scene')), style: { position: 'absolute', left: o.pigX + '%', bottom: act && act.kind === 'tramp' ? 40 : o.rest ? o.rest.bottom : 12, transform: 'translateX(-50%)', animation: act && act.kind === 'tramp' ? 'fidTramp .9s ease-in-out 4' : 'none', transition: o.pigProps.lifted ? 'none' : (o.ball && o.ball.kind === 'ball' ? 'left .9s ease-in-out' : 'left 1.6s ease-in-out') + ', bottom .5s ease-out', cursor: o.pigProps.lifted ? 'grabbing' : 'pointer', touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', zIndex: 2, pointerEvents: D ? 'none' : 'auto', opacity: D ? .85 : 1 } },
           this.pig({ ...o.pigProps, ...bub, ...(o.rest && o.rest.sleep ? { mood: 'sleepy' } : {}) }));
     const inner = h('div', { ref: o.noRef ? undefined : this.sceneRef, onClick: e => o.still || D ? (D && D.sel && e.target === e.currentTarget ? this.setState({ decoSel: null }) : null) : this.callPig(e), style: { position: 'relative', width: W, height: 300, overflow: 'hidden', flex: 'none', cursor: D ? 'default' : 'pointer' } },
@@ -2682,10 +2687,10 @@ class Component extends DCLogic {
     const wheel = (x, y, r) => d({ left: x, top: y, width: r, height: r, borderRadius: r, background: INK }, d({ left: r / 2 - 3, top: r / 2 - 3, width: 6, height: 6, borderRadius: 3, background: '#cfc4b8' }));
     const box = (...k) => h('div', { style: { position: 'relative', width: 96, height: 84 } }, ...k);
     switch (id) {
-      case 'kite': return box(d({ left: 30, top: 6, width: 36, height: 36, transform: 'rotate(45deg)', background: 'conic-gradient(oklch(0.68 0.17 25) 0 25%,oklch(0.85 0.13 90) 0 50%,oklch(0.68 0.17 25) 0 75%,oklch(0.85 0.13 90) 0)' }), d({ left: 47, top: 52, width: 2, height: 30, background: '#8a7e75' }), ...[56, 66, 76].map((y, i) => d({ left: 41 + (i % 2) * 6, top: y, width: 10, height: 6, background: CONF[i], clipPath: 'polygon(0 50%,100% 0,100% 100%)' })));
+      case 'kite': return box(d({ left: 30, top: 6, width: 36, height: 36, transform: 'rotate(45deg)', background: 'conic-gradient(oklch(0.68 0.17 25) 0 25%,oklch(0.85 0.13 90) 0 50%,oklch(0.68 0.17 25) 0 75%,oklch(0.85 0.13 90) 0)' }), d({ left: 47, top: 52, width: 2, height: 30, background: '#7a6e66' }), ...[56, 66, 76].map((y, i) => d({ left: 41 + (i % 2) * 6, top: y, width: 10, height: 6, background: CONF[i], clipPath: 'polygon(0 50%,100% 0,100% 100%)' })));
       case 'skate': return box(d({ left: 6, top: 44, width: 84, height: 12, borderRadius: 6, background: 'oklch(0.6 0.15 300)', backgroundImage: 'repeating-linear-gradient(90deg,transparent 0 10px,oklch(0.85 0.12 90) 10px 14px)' }), wheel(16, 54, 14), wheel(66, 54, 14));
       case 'guitar': return box(d({ left: 44, top: 10, width: 8, height: 46, borderRadius: 3, background: 'oklch(0.45 0.06 50)' }), d({ left: 41, top: 2, width: 14, height: 12, borderRadius: 3, background: 'oklch(0.38 0.05 50)' }), d({ left: 26, top: 50, width: 44, height: 32, borderRadius: '50%', background: 'oklch(0.66 0.14 50)' }), d({ left: 30, top: 34, width: 36, height: 28, borderRadius: '50%', background: 'oklch(0.66 0.14 50)' }), d({ left: 41, top: 50, width: 14, height: 14, borderRadius: 7, background: 'oklch(0.32 0.05 50)' }));
-      case 'tramp': return box(d({ left: 14, top: 48, width: 6, height: 28, background: '#8a7e75', transform: 'rotate(12deg)' }), d({ left: 76, top: 48, width: 6, height: 28, background: '#8a7e75', transform: 'rotate(-12deg)' }), d({ left: 4, top: 36, width: 88, height: 22, borderRadius: '50%', background: 'oklch(0.58 0.14 240)' }), d({ left: 12, top: 39, width: 72, height: 15, borderRadius: '50%', background: 'oklch(0.32 0.03 250)' }));
+      case 'tramp': return box(d({ left: 14, top: 48, width: 6, height: 28, background: '#7a6e66', transform: 'rotate(12deg)' }), d({ left: 76, top: 48, width: 6, height: 28, background: '#7a6e66', transform: 'rotate(-12deg)' }), d({ left: 4, top: 36, width: 88, height: 22, borderRadius: '50%', background: 'oklch(0.58 0.14 240)' }), d({ left: 12, top: 39, width: 72, height: 15, borderRadius: '50%', background: 'oklch(0.32 0.03 250)' }));
       case 'console': return box(d({ left: 10, top: 6, width: 76, height: 50, borderRadius: 6, background: 'oklch(0.32 0.02 260)' }, d({ left: 5, top: 5, width: 66, height: 40, borderRadius: 3, background: 'oklch(0.45 0.12 270)', overflow: 'hidden' }, d({ left: 8, top: 8, width: 8, height: 8, background: 'oklch(0.85 0.15 140)', animation: 'fidPong 2.4s linear infinite' }), d({ left: 30, top: 6, width: 14, height: 8, background: 'oklch(0.8 0.15 25)', clipPath: 'polygon(20% 0,80% 0,100% 50%,80% 100%,20% 100%,0 50%)', animation: 'fidTwinkle 1s ease-in-out infinite' }))), d({ left: 26, top: 62, width: 44, height: 18, borderRadius: 9, background: 'oklch(0.35 0.02 260)' }, d({ left: 7, top: 7, width: 10, height: 3, background: '#cfc4b8' }), d({ left: 10, top: 4, width: 3, height: 10, background: '#cfc4b8' }), d({ left: 28, top: 5, width: 5, height: 5, borderRadius: 3, background: 'oklch(0.65 0.18 25)' })));
       case 'car': return box(d({ left: 22, top: 18, width: 50, height: 30, borderRadius: '18px 22px 4px 4px', background: 'oklch(0.62 0.17 25)' }, d({ left: 8, top: 6, width: 16, height: 14, borderRadius: '8px 2px 2px 2px', background: 'oklch(0.9 0.04 220)' }), d({ left: 27, top: 6, width: 16, height: 14, borderRadius: '2px 10px 2px 2px', background: 'oklch(0.9 0.04 220)' })), d({ left: 4, top: 40, width: 88, height: 24, borderRadius: 12, background: 'oklch(0.62 0.17 25)' }), d({ left: 84, top: 46, width: 8, height: 7, borderRadius: 3, background: 'oklch(0.9 0.12 90)' }), wheel(14, 54, 22), wheel(60, 54, 22));
     }
@@ -2698,10 +2703,10 @@ class Component extends DCLogic {
     switch (act.kind) {
       case 'kite': {
         const px = o.pigX / 100 * (o.W || 350) + 34, py = 214, kx = Math.min((o.W || 350) - 70, px + 180), ky = 58;
-        return [h('svg', { key: 'ks', width: 350, height: 300, style: { position: 'absolute', left: 0, top: 0, pointerEvents: 'none' } }, h('path', { d: `M${px} ${py} Q ${(px + kx) / 2} ${ky + 110} ${kx} ${ky + 16}`, stroke: '#8a7e75', strokeWidth: 1.5, fill: 'none' })),
+        return [h('svg', { key: 'ks', width: 350, height: 300, style: { position: 'absolute', left: 0, top: 0, pointerEvents: 'none' } }, h('path', { d: `M${px} ${py} Q ${(px + kx) / 2} ${ky + 110} ${kx} ${ky + 16}`, stroke: '#7a6e66', strokeWidth: 1.5, fill: 'none' })),
           d({ left: kx - 48, top: ky - 42, width: 96, height: 84, animation: 'fidSway 1.8s ease-in-out infinite', transformOrigin: '50% 100%', pointerEvents: 'none' }, this.toyIcon('kite'))];
       }
-      case 'tramp': return [d({ left: o.pigX / 100 * (o.W || 350) - 70, top: 236, width: 140, height: 60, pointerEvents: 'none' }, d({ left: 14, top: 18, width: 7, height: 40, background: '#8a7e75', transform: 'rotate(10deg)' }), d({ left: 118, top: 18, width: 7, height: 40, background: '#8a7e75', transform: 'rotate(-10deg)' }), d({ left: 0, top: 4, width: 140, height: 30, borderRadius: '50%', background: 'oklch(0.58 0.14 240)' }), d({ left: 12, top: 8, width: 116, height: 20, borderRadius: '50%', background: 'oklch(0.32 0.03 250)' }))];
+      case 'tramp': return [d({ left: o.pigX / 100 * (o.W || 350) - 70, top: 236, width: 140, height: 60, pointerEvents: 'none' }, d({ left: 14, top: 18, width: 7, height: 40, background: '#7a6e66', transform: 'rotate(10deg)' }), d({ left: 118, top: 18, width: 7, height: 40, background: '#7a6e66', transform: 'rotate(-10deg)' }), d({ left: 0, top: 4, width: 140, height: 30, borderRadius: '50%', background: 'oklch(0.58 0.14 240)' }), d({ left: 12, top: 8, width: 116, height: 20, borderRadius: '50%', background: 'oklch(0.32 0.03 250)' }))];
       case 'console': return [d({ left: 228, top: 132, width: 112, height: 130, pointerEvents: 'none' },
         d({ left: 46, top: 74, width: 20, height: 40, background: 'oklch(0.4 0.02 260)' }), d({ left: 20, top: 110, width: 72, height: 14, borderRadius: 6, background: 'oklch(0.45 0.04 60)' }),
         d({ left: 0, top: 0, width: 112, height: 78, borderRadius: 8, background: 'oklch(0.3 0.02 260)' },
@@ -2718,7 +2723,7 @@ class Component extends DCLogic {
           d({ left: 34, top: 6, width: 88, height: 83 }, rider),
           d({ left: 28, top: 54, width: 96, height: 30, borderRadius: '24px 30px 4px 4px', background: 'oklch(0.9 0.04 220 / .25)', boxShadow: 'inset 0 0 0 4px oklch(0.62 0.17 25)' }),
           d({ left: 4, top: 70, width: 160, height: 34, borderRadius: 16, background: 'oklch(0.62 0.17 25)' }, d({ left: 148, top: 8, width: 10, height: 9, borderRadius: 4, background: 'oklch(0.92 0.12 90)' }), d({ left: 2, top: 10, width: 6, height: 8, borderRadius: 3, background: 'oklch(0.7 0.18 25)' })),
-          ...[22, 112].map(x => d({ left: x, top: 90, width: 30, height: 30, borderRadius: 15, background: INK, animation: 'fidSpin .4s linear infinite' }, d({ left: 13, top: 3, width: 4, height: 10, background: '#cfc4b8' }), d({ left: 10, top: 10, width: 10, height: 10, borderRadius: 5, background: '#8a7e75' })))))];
+          ...[22, 112].map(x => d({ left: x, top: 90, width: 30, height: 30, borderRadius: 15, background: INK, animation: 'fidSpin .4s linear infinite' }, d({ left: 13, top: 3, width: 4, height: 10, background: '#cfc4b8' }), d({ left: 10, top: 10, width: 10, height: 10, borderRadius: 5, background: '#7a6e66' })))))];
     }
     return [];
   }
@@ -2790,11 +2795,11 @@ class Component extends DCLogic {
     const btnS = { flex: 1, minWidth: 0, minHeight: 54, padding: '6px 8px', borderRadius: 16, border: '1px solid #e3d9cd', background: '#fffdf9', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 };
     const found = w.found || [];
     const album = E('div', { background: '#fffdf9', borderRadius: 24, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 },
-      E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, E('span', { font: "600 18px 'Fredoka',sans-serif" }, 'Treasure album'), E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, found.length + ' of ' + FINDS.length)),
+      E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, E('span', { font: "600 18px 'Fredoka',sans-serif" }, 'Treasure album'), E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#695d55' }, found.length + ' of ' + FINDS.length)),
       E('div', { display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 8 }, ...FINDS.map(f => { const got = found.includes(f.id);
         return h('div', { key: f.id, title: got ? f.name : 'Not found yet', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 2px', borderRadius: 14, background: got ? 'oklch(0.95 0.04 85)' : '#f6f1ea' } },
           h('div', { style: { opacity: got ? 1 : .18, filter: got ? 'none' : 'grayscale(1)' } }, this.findIcon(f.id)), E('span', { font: "500 10px/1.2 'DM Sans',sans-serif", color: got ? INK : '#b9ada2', textAlign: 'center' }, got ? f.name : '?')); })),
-      E('span', { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#7a6e66' }, 'Treasures turn up while you do things around the world. The first time you do each thing in a day gives the best chance.'));
+      E('span', { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#695d55' }, 'Treasures turn up while you do things around the world. The first time you do each thing in a day gives the best chance.'));
     const P = PLACES.find(x => x.id === s.worldAt);
     if (!P) {
       const pin = (pl, x, y, label, open, icon, onClick, sub) => h('button', { key: label, onClick, 'aria-label': label, style: { position: 'absolute', left: x + '%', top: y + '%', transform: 'translate(-50%,-50%)', border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, zIndex: 2 } },
@@ -2810,7 +2815,7 @@ class Component extends DCLogic {
         E('div', { display: 'flex', flexDirection: 'column', gap: 8 }, ...PLACES.map(pl => { const open = tl >= pl.need, n = pl.finds.filter(([fid]) => found.includes(fid)).length;
           return h('button', { key: pl.id, onClick: () => this.goPlace(pl.id), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 18, border: 'none', background: open ? '#fffdf9' : 'rgba(255,253,249,.5)', cursor: 'pointer', textAlign: 'left', opacity: open ? 1 : .7 } },
             E('span', { width: 40, height: 40, flex: 'none', borderRadius: 20, background: '#f6f1ea', display: 'flex', alignItems: 'center', justifyContent: 'center', filter: open ? 'none' : 'grayscale(1)' }, this.findIcon(pl.icon, 30)),
-            E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, pl.name), E('span', { font: "400 12px 'DM Sans',sans-serif", color: '#7a6e66' }, (pl.region ? pl.region + ' · ' : '') + (open ? pl.blurb + ' · friend: ' + pl.friend.name : 'Opens at total level ' + pl.need))),
+            E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, pl.name), E('span', { font: "400 12px 'DM Sans',sans-serif", color: '#695d55' }, (pl.region ? pl.region + ' · ' : '') + (open ? pl.blurb + ' · friend: ' + pl.friend.name : 'Opens at total level ' + pl.need))),
             E('span', { flex: 'none', font: "600 12px 'DM Sans',sans-serif", color: open ? '#5e534c' : '#a89b90' }, open ? n + '/3 found' : 'Locked')); })),
         album);
     }
@@ -2820,7 +2825,7 @@ class Component extends DCLogic {
     const fr = P.friend, fx = fr.x;
     const fs = s.friendSay ? d({ left: `calc(${fx}% - 90px)`, top: ['stork', 'deer', 'horse', 'bee'].includes(fr.kind) ? 92 : 120, width: 180, display: 'flex', justifyContent: 'center', zIndex: 4, pointerEvents: 'none' },
       h('div', { key: s.friendSay.key, style: { background: '#fffdf9', borderRadius: 14, padding: '7px 11px', boxShadow: '0 4px 14px rgba(42,35,32,.14)', textAlign: 'center', animation: 'fidIn .25s ease-out' } },
-        E('div', { font: "600 14px/1.25 'Fredoka',sans-serif", color: INK }, s.friendSay.nl), E('div', { font: "400 11px/1.3 'DM Sans',sans-serif", color: '#7a6e66' }, s.friendSay.en))) : null;
+        E('div', { font: "600 14px/1.25 'Fredoka',sans-serif", color: INK }, s.friendSay.nl), E('div', { font: "400 11px/1.3 'DM Sans',sans-serif", color: '#695d55' }, s.friendSay.en))) : null;
     const friendY = { duck: 218, cow: 196, gull: 200, cat: 186, stork: 168, bee: 172, pigeon: 208, seal: 214, deer: 178, frog: 218, crab: 222, hedgehog: 222, horse: 176, sheep: 208, owl: 200 }[fr.kind] ?? 200;
     const friendEl = h('button', { key: 'fr', onClick: e => { e.stopPropagation(); this.talkFriend(P); }, 'aria-label': 'Talk to ' + fr.name, style: { position: 'absolute', left: fx + '%', top: friendY, transform: 'translateX(-50%) scaleX(' + (fx > 50 ? -1 : 1) + ')', border: 'none', background: 'none', padding: 0, cursor: 'pointer', zIndex: 2, animation: 'fidBob 2.6s ease-in-out infinite' } }, this.friendDraw(fr.kind));
     const fx2 = act ? [
@@ -2842,15 +2847,15 @@ class Component extends DCLogic {
     return E('div', { display: 'flex', flexDirection: 'column', gap: 10 },
       E('div', { display: 'flex', alignItems: 'center', gap: 10 },
         h('button', { onClick: () => this.leavePlace(), style: { height: 40, padding: '0 14px', borderRadius: 20, border: '1px solid #e3d9cd', background: '#fffdf9', font: "600 14px 'DM Sans',sans-serif", cursor: 'pointer', flex: 'none' } }, '‹ Map'),
-        E('div', { display: 'flex', flexDirection: 'column', minWidth: 0 }, E('span', { font: "600 19px/1.15 'Fredoka',sans-serif" }, P.name), E('span', { font: "400 12px 'DM Sans',sans-serif", color: '#7a6e66' }, o.partnerHere ? o.partnerName + ' is here too!' : P.blurb))),
+        E('div', { display: 'flex', flexDirection: 'column', minWidth: 0 }, E('span', { font: "600 19px/1.15 'Fredoka',sans-serif" }, P.name), E('span', { font: "400 12px 'DM Sans',sans-serif", color: '#695d55' }, o.partnerHere ? o.partnerName + ' is here too!' : P.blurb))),
       scene,
       E('div', { display: 'flex', gap: 8 }, ...P.acts.map(a => h('button', { key: a[0], onClick: () => this.doAct(P, a), style: { ...btnS, opacity: s.wAct && s.wAct.id !== a[0] ? .5 : 1 } },
         E('span', { font: "600 14px/1.2 'DM Sans',sans-serif", textAlign: 'center' }, a[1]),
-        E('span', { font: "500 11px 'DM Sans',sans-serif", color: done.includes(a[0]) ? C.greenInk : '#7a6e66' }, done.includes(a[0]) ? 'Done today' : '+' + STATS.find(x => x.id === a[2]).name)))),
-      h('button', { onClick: () => this.talkFriend(P), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 18, border: 'none', background: 'oklch(0.95 0.035 210)', cursor: 'pointer', textAlign: 'left' } },
+        E('span', { font: "500 11px 'DM Sans',sans-serif", color: done.includes(a[0]) ? C.greenInk : '#695d55' }, done.includes(a[0]) ? 'Done today' : '+' + STATS.find(x => x.id === a[2]).name)))),
+      h('button', { onClick: () => this.talkFriend(P), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 18, border: 'none', background: '#fffdf9', cursor: 'pointer', textAlign: 'left' } },
         E('span', { flex: 'none', transform: 'scale(.6)', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }, this.friendDraw(fr.kind)),
         E('span', { display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, 'Talk to ' + fr.name), E('span', { font: "400 12px 'DM Sans',sans-serif", color: '#5e534c' }, fr.name + ' only speaks Dutch. Practise your A1!'))),
-      E('span', { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#7a6e66', padding: '0 4px', textWrap: 'pretty' }, 'Each activity gives 2 coins and stat points the first time each day. Treasures: ' + P.finds.filter(([fid]) => found.includes(fid)).length + ' of 3 found here.'));
+      E('span', { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#695d55', padding: '0 4px', textWrap: 'pretty' }, 'Each activity gives 2 coins and stat points the first time each day. Treasures: ' + P.finds.filter(([fid]) => found.includes(fid)).length + ' of 3 found here.'));
   }
   // The world map: the whole of the Netherlands, drawn from simplified coordinates. Drag to explore.
   nlMap(o) {
@@ -2918,25 +2923,25 @@ class Component extends DCLogic {
       daffodil: [d({ left: 19, top: 20, width: 3, height: 18, background: 'oklch(0.55 0.12 145)' }), ...[0, 60, 120, 180, 240, 300].map(r => d({ left: 15, top: 2, width: 10, height: 14, borderRadius: '50%', background: 'oklch(0.94 0.1 95)', transform: `rotate(${r}deg)`, transformOrigin: '50% 100%' })), d({ left: 14, top: 10, width: 12, height: 12, borderRadius: 6, background: 'oklch(0.8 0.16 70)', boxShadow: 'inset 0 0 0 2px oklch(0.72 0.16 60)' })],
       bulbbag: [d({ left: 8, top: 10, width: 24, height: 28, borderRadius: '6px 6px 10px 10px', background: 'repeating-linear-gradient(90deg,oklch(0.8 0.06 75) 0 3px,oklch(0.74 0.06 70) 3px 5px)' }), d({ left: 6, top: 6, width: 28, height: 8, borderRadius: 4, background: 'oklch(0.66 0.17 25)' }), ...[[12, 2], [20, 0], [26, 3]].map(([x, y]) => d({ left: x, top: y, width: 8, height: 9, borderRadius: '50% 50% 45% 45% / 60% 60% 40% 40%', background: 'oklch(0.75 0.06 60)' }))],
       anchor: [d({ left: 18, top: 4, width: 4, height: 30, background: 'oklch(0.45 0.05 250)' }), d({ left: 13, top: 2, width: 14, height: 10, borderRadius: 7, border: '3px solid oklch(0.45 0.05 250)', boxSizing: 'border-box' }), d({ left: 10, top: 12, width: 20, height: 3, background: 'oklch(0.45 0.05 250)' }), d({ left: 6, top: 18, width: 28, height: 18, borderRadius: '0 0 16px 16px', border: '4px solid oklch(0.45 0.05 250)', borderTop: 'none', boxSizing: 'border-box' })],
-      cube: [d({ left: 10, top: 4, width: 22, height: 22, background: 'oklch(0.85 0.15 92)', transform: 'rotate(45deg)', boxShadow: 'inset -5px -5px 0 oklch(0.75 0.14 85)' }), d({ left: 15, top: 10, width: 6, height: 6, background: 'oklch(0.55 0.05 250)', transform: 'rotate(45deg)' }), d({ left: 19, top: 30, width: 4, height: 9, background: '#8a7e75' })],
+      cube: [d({ left: 10, top: 4, width: 22, height: 22, background: 'oklch(0.85 0.15 92)', transform: 'rotate(45deg)', boxShadow: 'inset -5px -5px 0 oklch(0.75 0.14 85)' }), d({ left: 15, top: 10, width: 6, height: 6, background: 'oklch(0.55 0.05 250)', transform: 'rotate(45deg)' }), d({ left: 19, top: 30, width: 4, height: 9, background: '#7a6e66' })],
       rope: [d({ left: 6, top: 6, width: 28, height: 28, borderRadius: 14, border: '5px solid oklch(0.78 0.08 75)', boxSizing: 'border-box', backgroundImage: 'none' }), d({ left: 12, top: 12, width: 16, height: 16, borderRadius: 8, border: '4px dashed oklch(0.66 0.08 65)', boxSizing: 'border-box' })],
-      lighthouse: [d({ left: 14, top: 8, width: 12, height: 28, background: 'repeating-linear-gradient(180deg,oklch(0.6 0.2 25) 0 7px,#fffdf9 7px 12px)', clipPath: 'polygon(20% 0,80% 0,100% 100%,0 100%)' }), d({ left: 13, top: 2, width: 14, height: 8, borderRadius: '7px 7px 0 0', background: 'oklch(0.9 0.12 90)', boxShadow: '0 0 8px oklch(0.92 0.12 90)' }), d({ left: 10, top: 34, width: 20, height: 4, borderRadius: 2, background: '#8a7e75' })],
+      lighthouse: [d({ left: 14, top: 8, width: 12, height: 28, background: 'repeating-linear-gradient(180deg,oklch(0.6 0.2 25) 0 7px,#fffdf9 7px 12px)', clipPath: 'polygon(20% 0,80% 0,100% 100%,0 100%)' }), d({ left: 13, top: 2, width: 14, height: 8, borderRadius: '7px 7px 0 0', background: 'oklch(0.9 0.12 90)', boxShadow: '0 0 8px oklch(0.92 0.12 90)' }), d({ left: 10, top: 34, width: 20, height: 4, borderRadius: 2, background: '#7a6e66' })],
       amber: [d({ left: 8, top: 8, width: 24, height: 22, borderRadius: '40% 60% 50% 45%', background: 'radial-gradient(circle at 35% 30%,oklch(0.88 0.13 80),oklch(0.66 0.15 55))', boxShadow: '0 0 8px oklch(0.8 0.13 70 / .6)' }), d({ left: 14, top: 12, width: 6, height: 4, borderRadius: 3, background: 'rgba(255,255,255,.6)' })],
       texelwool: [...[[8, 10], [18, 6], [24, 14], [12, 18], [22, 22]].map(([x, y]) => d({ left: x, top: y, width: 14, height: 14, borderRadius: 7, background: '#fffdf9', boxShadow: 'inset -2px -2px 0 #e7ded2' }))],
       pinecone: [d({ left: 12, top: 6, width: 16, height: 28, borderRadius: '50% 50% 45% 45% / 40% 40% 60% 60%', background: 'repeating-linear-gradient(160deg,oklch(0.55 0.08 55) 0 4px,oklch(0.45 0.07 50) 4px 6px),oklch(0.5 0.08 55)' }), d({ left: 18, top: 2, width: 3, height: 6, background: 'oklch(0.45 0.06 50)' })],
       mushroom: [d({ left: 15, top: 20, width: 10, height: 16, borderRadius: '3px 3px 5px 5px', background: '#fffdf9', boxShadow: 'inset 0 0 0 1px #e3d9cd' }), d({ left: 4, top: 6, width: 32, height: 18, borderRadius: '16px 16px 4px 4px', background: 'oklch(0.6 0.2 25)' }), ...[[10, 10], [22, 9], [16, 15], [28, 15]].map(([x, y]) => d({ left: x, top: y, width: 4, height: 4, borderRadius: 2, background: '#fffdf9' }))],
       antler: [d({ left: 18, top: 6, width: 4, height: 30, borderRadius: 2, background: 'oklch(0.75 0.05 70)', transform: 'rotate(-10deg)' }), d({ left: 10, top: 10, width: 4, height: 14, borderRadius: 2, background: 'oklch(0.75 0.05 70)', transform: 'rotate(-40deg)' }), d({ left: 24, top: 6, width: 4, height: 12, borderRadius: 2, background: 'oklch(0.75 0.05 70)', transform: 'rotate(30deg)' }), d({ left: 12, top: 22, width: 4, height: 10, borderRadius: 2, background: 'oklch(0.75 0.05 70)', transform: 'rotate(-50deg)' })],
       lily: [d({ left: 2, top: 20, width: 36, height: 16, borderRadius: '50%', background: 'oklch(0.62 0.13 145)', clipPath: 'polygon(0 0,45% 0,50% 50%,55% 0,100% 0,100% 100%,0 100%)' }), ...[-40, -15, 15, 40].map(r => d({ left: 15, top: 6, width: 10, height: 18, borderRadius: '50%', background: 'oklch(0.9 0.06 350)', transform: `rotate(${r}deg)`, transformOrigin: '50% 100%' })), d({ left: 17, top: 16, width: 6, height: 6, borderRadius: 3, background: 'oklch(0.85 0.14 90)' })],
-      toyboat: [d({ left: 4, top: 22, width: 32, height: 10, borderRadius: '0 0 16px 16px', background: 'oklch(0.55 0.08 50)' }), d({ left: 19, top: 4, width: 2, height: 20, background: '#8a7e75' }), d({ left: 21, top: 6, width: 12, height: 14, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)' }), d({ left: 0, top: 32, width: 40, height: 4, borderRadius: 2, background: 'oklch(0.7 0.09 225)' })],
+      toyboat: [d({ left: 4, top: 22, width: 32, height: 10, borderRadius: '0 0 16px 16px', background: 'oklch(0.55 0.08 50)' }), d({ left: 19, top: 4, width: 2, height: 20, background: '#7a6e66' }), d({ left: 21, top: 6, width: 12, height: 14, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)' }), d({ left: 0, top: 32, width: 40, height: 4, borderRadius: 2, background: 'oklch(0.7 0.09 225)' })],
       reed: [...[10, 16, 22, 28].map((x, i) => d({ left: x, top: 4 + (i % 2) * 4, width: 3, height: 32, background: 'oklch(0.7 0.09 90)', transform: `rotate(${(i - 1.5) * 6}deg)` })), ...[11, 23].map(x => d({ left: x - 2, top: 2, width: 7, height: 12, borderRadius: 4, background: 'oklch(0.5 0.06 50)' })), d({ left: 8, top: 22, width: 24, height: 4, borderRadius: 2, background: 'oklch(0.6 0.15 25)' })],
       mussel: [d({ left: 6, top: 8, width: 28, height: 22, borderRadius: '50% 50% 50% 50% / 70% 70% 30% 30%', background: 'linear-gradient(135deg,oklch(0.35 0.05 260),oklch(0.25 0.04 270))', transform: 'rotate(-20deg)' }), d({ left: 12, top: 12, width: 10, height: 4, borderRadius: 2, background: 'rgba(160,190,255,.35)', transform: 'rotate(-20deg)' })],
       oyster: [d({ left: 4, top: 14, width: 32, height: 20, borderRadius: '50%', background: 'oklch(0.75 0.02 80)', boxShadow: 'inset 0 -4px 0 oklch(0.65 0.02 80)' }), d({ left: 8, top: 16, width: 24, height: 14, borderRadius: '50%', background: 'oklch(0.9 0.02 330)' }), d({ left: 15, top: 16, width: 10, height: 10, borderRadius: 5, background: 'radial-gradient(circle at 35% 35%,#fff,oklch(0.9 0.02 250))', animation: 'fidTwinkle 2s infinite' })],
-      buoy: [d({ left: 10, top: 10, width: 20, height: 24, borderRadius: '50% 50% 40% 40%', background: 'repeating-linear-gradient(180deg,oklch(0.6 0.2 25) 0 6px,#fffdf9 6px 10px)' }), d({ left: 18, top: 2, width: 4, height: 10, background: '#8a7e75' }), d({ left: 4, top: 32, width: 32, height: 4, borderRadius: 2, background: 'oklch(0.7 0.09 225)' })],
+      buoy: [d({ left: 10, top: 10, width: 20, height: 24, borderRadius: '50% 50% 40% 40%', background: 'repeating-linear-gradient(180deg,oklch(0.6 0.2 25) 0 6px,#fffdf9 6px 10px)' }), d({ left: 18, top: 2, width: 4, height: 10, background: '#7a6e66' }), d({ left: 4, top: 32, width: 32, height: 4, borderRadius: 2, background: 'oklch(0.7 0.09 225)' })],
       bol: [d({ left: 6, top: 10, width: 28, height: 24, borderRadius: '50%', background: 'radial-gradient(circle at 40% 30%,oklch(0.45 0.07 50),oklch(0.3 0.05 45))' }), d({ left: 10, top: 26, width: 20, height: 8, borderRadius: '0 0 10px 10px', background: '#fffdf9' }), d({ left: 12, top: 14, width: 8, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.3)' })],
       angel: [d({ left: 14, top: 12, width: 12, height: 24, borderRadius: '6px 6px 2px 2px', background: 'oklch(0.75 0.02 80)' }), d({ left: 15, top: 4, width: 10, height: 10, borderRadius: 5, background: 'oklch(0.78 0.02 80)' }), d({ left: 2, top: 12, width: 14, height: 16, borderRadius: '100% 0 50% 50%', background: 'oklch(0.85 0.02 80)' }), d({ left: 24, top: 12, width: 14, height: 16, borderRadius: '0 100% 50% 50%', background: 'oklch(0.85 0.02 80)' }), d({ left: 22, top: 16, width: 5, height: 8, borderRadius: 1, background: INK })],
       dragon: [d({ left: 4, top: 16, width: 28, height: 16, borderRadius: '50%', background: 'oklch(0.6 0.15 145)' }), d({ left: 26, top: 6, width: 12, height: 12, borderRadius: 6, background: 'oklch(0.6 0.15 145)' }), d({ left: 34, top: 9, width: 2, height: 2, borderRadius: 1, background: INK }), d({ left: 10, top: 8, width: 14, height: 12, background: 'oklch(0.7 0.15 145)', clipPath: 'polygon(0 100%,30% 0,60% 60%,100% 10%,90% 100%)' }), d({ left: 0, top: 24, width: 10, height: 6, background: 'oklch(0.6 0.15 145)', clipPath: 'polygon(100% 0,0 50%,100% 100%)' }), d({ left: 38, top: 10, width: 4, height: 3, background: 'oklch(0.75 0.17 50)' })],
       skate: [d({ left: 2, top: 26, width: 36, height: 3, borderRadius: '0 10px 10px 0', background: 'oklch(0.75 0.02 250)' }), d({ left: 6, top: 18, width: 26, height: 9, borderRadius: '4px 10px 2px 2px', background: 'oklch(0.6 0.08 55)' }), d({ left: 34, top: 18, width: 6, height: 10, borderRadius: '0 8px 0 0', borderTop: '3px solid oklch(0.75 0.02 250)', borderRight: '3px solid oklch(0.75 0.02 250)', boxSizing: 'border-box' }), d({ left: 8, top: 14, width: 4, height: 4, borderRadius: 2, background: 'oklch(0.6 0.15 25)' })],
-      sail: [d({ left: 19, top: 2, width: 2, height: 30, background: '#8a7e75' }), d({ left: 21, top: 4, width: 14, height: 24, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)', boxShadow: 'inset 0 0 0 1px #e3d9cd' }), d({ left: 5, top: 10, width: 13, height: 18, background: 'oklch(0.7 0.1 240)', clipPath: 'polygon(100% 0,100% 100%,0 100%)' }), d({ left: 6, top: 30, width: 28, height: 6, borderRadius: '0 0 12px 12px', background: 'oklch(0.55 0.08 50)' })],
+      sail: [d({ left: 19, top: 2, width: 2, height: 30, background: '#7a6e66' }), d({ left: 21, top: 4, width: 14, height: 24, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)', boxShadow: 'inset 0 0 0 1px #e3d9cd' }), d({ left: 5, top: 10, width: 13, height: 18, background: 'oklch(0.7 0.1 240)', clipPath: 'polygon(100% 0,100% 100%,0 100%)' }), d({ left: 6, top: 30, width: 28, height: 6, borderRadius: '0 0 12px 12px', background: 'oklch(0.55 0.08 50)' })],
       pompeblad: [d({ left: 6, top: 6, width: 28, height: 28, background: 'oklch(0.58 0.2 25)', clipPath: "path('M14 27 L2.5 14 A7 7 0 0 1 14 4.5 A7 7 0 0 1 25.5 14 Z')" }), d({ left: 19, top: 18, width: 2, height: 18, background: 'oklch(0.45 0.12 25)' })],
       cockle: [d({ left: 6, top: 8, width: 28, height: 24, borderRadius: '50% 50% 20% 20%', background: 'repeating-linear-gradient(90deg,oklch(0.85 0.05 70) 0 3px,oklch(0.75 0.06 60) 3px 5px)' }), d({ left: 15, top: 30, width: 10, height: 5, borderRadius: 2, background: 'oklch(0.75 0.06 60)' })],
       sheepbell: [d({ left: 18, top: 2, width: 4, height: 8, borderRadius: 2, background: 'oklch(0.6 0.15 25)' }), d({ left: 9, top: 8, width: 22, height: 22, borderRadius: '11px 11px 4px 4px', background: 'linear-gradient(90deg,oklch(0.8 0.12 85),oklch(0.68 0.12 75))' }), d({ left: 6, top: 28, width: 28, height: 4, borderRadius: 2, background: 'oklch(0.66 0.12 75)' }), d({ left: 18, top: 31, width: 5, height: 5, borderRadius: 3, background: 'oklch(0.5 0.08 60)' })],
@@ -2994,7 +2999,7 @@ class Component extends DCLogic {
       case 'park': return [sky, cloud(40, 20, 80), cloud(200, 50, 95), ...[[-10, 104, 70], [40, 96, 80], [110, 108, 64], [170, 100, 76], [236, 104, 70], [296, 96, 80]].flatMap(([x, y, sz], i) => tree(x, y, sz, i % 2 ? 'oklch(0.58 0.12 145)' : 'oklch(0.64 0.12 140)')),
         d({ left: 0, top: 178, width: 350, height: 122, background: 'oklch(0.8 0.11 140)' }), d({ left: -40, top: 196, width: 170, height: 70, borderRadius: '50%', background: 'oklch(0.74 0.09 225)', boxShadow: 'inset 0 6px 0 oklch(0.82 0.07 225)' }),
         d({ left: 236, top: 150, width: 8, height: 110, background: 'oklch(0.5 0.06 50)', transform: 'rotate(10deg)' }), d({ left: 322, top: 150, width: 8, height: 110, background: 'oklch(0.5 0.06 50)', transform: 'rotate(-10deg)' }), d({ left: 236, top: 146, width: 96, height: 8, borderRadius: 4, background: 'oklch(0.5 0.06 50)' }),
-        d({ left: 262, top: 152, width: 40, height: 96, animation: 'fidSway 2.4s ease-in-out infinite', transformOrigin: '50% 0' }, d({ left: 2, top: 0, width: 2, height: 90, background: '#8a7e75' }), d({ left: 36, top: 0, width: 2, height: 90, background: '#8a7e75' }), d({ left: -2, top: 88, width: 44, height: 7, borderRadius: 3, background: 'oklch(0.62 0.15 25)' })),
+        d({ left: 262, top: 152, width: 40, height: 96, animation: 'fidSway 2.4s ease-in-out infinite', transformOrigin: '50% 0' }, d({ left: 2, top: 0, width: 2, height: 90, background: '#7a6e66' }), d({ left: 36, top: 0, width: 2, height: 90, background: '#7a6e66' }), d({ left: -2, top: 88, width: 44, height: 7, borderRadius: 3, background: 'oklch(0.62 0.15 25)' })),
         d({ left: 140, top: 250, width: 100, height: 34, borderRadius: '50%', background: 'oklch(0.66 0.17 25)', backgroundImage: 'linear-gradient(90deg,rgba(255,255,255,.55) 50%,transparent 50%),linear-gradient(rgba(255,255,255,.55) 50%,transparent 50%)', backgroundSize: '12px 12px' }),
         d({ left: 200, top: 240, width: 26, height: 18, borderRadius: '4px 4px 8px 8px', background: 'oklch(0.7 0.08 70)', backgroundImage: 'repeating-linear-gradient(90deg,transparent 0 4px,rgba(90,60,30,.3) 4px 5px)' })];
       case 'farm': return [sky, cloud(80, 24, 90), d({ left: 0, top: 172, width: 350, height: 128, background: 'oklch(0.78 0.11 135)' }),
@@ -3006,7 +3011,7 @@ class Component extends DCLogic {
         d({ left: 0, top: 120, width: 350, height: 80, background: 'oklch(0.66 0.1 225)' }), ...[0, 1, 2].map(i => d({ left: -40, top: 136 + i * 18, width: 430, height: 8, backgroundImage: 'radial-gradient(ellipse 12px 4px at 50% 100%,rgba(255,255,255,.6) 96%,transparent)', backgroundSize: '30px 8px', animation: `fidSwim ${4 + i}s ease-in-out infinite` })),
         d({ left: 250, top: 104, width: 110, height: 8, background: 'oklch(0.55 0.05 60)' }), ...[258, 282, 306, 330].map(x => d({ left: x, top: 110, width: 4, height: 34, background: 'oklch(0.5 0.05 60)' })), d({ left: 296, top: 84, width: 30, height: 22, borderRadius: '15px 15px 0 0', background: '#fffdf9' }),
         d({ left: 0, top: 186, width: 350, height: 114, background: 'oklch(0.9 0.06 85)', backgroundImage: 'radial-gradient(circle,oklch(0.85 0.06 80) 0 1.5px,transparent 2px)', backgroundSize: '14px 12px', borderRadius: '40% 60% 0 0 / 18px 22px 0 0' }),
-        d({ left: 262, top: 152, width: 4, height: 100, background: '#8a7e75' }), d({ left: 222, top: 140, width: 84, height: 30, borderRadius: '42px 42px 0 0', background: 'repeating-linear-gradient(90deg,oklch(0.66 0.17 25) 0 14px,#fffdf9 14px 28px)' }),
+        d({ left: 262, top: 152, width: 4, height: 100, background: '#7a6e66' }), d({ left: 222, top: 140, width: 84, height: 30, borderRadius: '42px 42px 0 0', background: 'repeating-linear-gradient(90deg,oklch(0.66 0.17 25) 0 14px,#fffdf9 14px 28px)' }),
         d({ left: 236, top: 254, width: 60, height: 18, borderRadius: 4, background: 'oklch(0.75 0.12 240)', transform: 'rotate(-6deg)' }),
         ...(doneToday.includes('castle') ? [this.castle(70, 218)] : [])];
       case 'town': {
@@ -3031,7 +3036,7 @@ class Component extends DCLogic {
         d({ left: 0, top: 166, width: 350, height: 8, background: 'oklch(0.85 0.02 250)' }), d({ left: 0, top: 174, width: 350, height: 60, background: 'oklch(0.62 0.07 230)', backgroundImage: 'repeating-linear-gradient(90deg,transparent 0 22px,rgba(255,255,255,.22) 22px 34px)', animation: 'fidSwim 7s ease-in-out infinite' }),
         d({ left: 230, top: 196, width: 70, height: 20, animation: 'fidSwim 9s ease-in-out infinite' }, d({ left: 0, top: 8, width: 70, height: 12, borderRadius: '4px 4px 20px 20px', background: 'oklch(0.86 0.15 92)' }), d({ left: 20, top: 0, width: 26, height: 10, borderRadius: 3, background: '#fffdf9' })),
         d({ left: 0, top: 232, width: 350, height: 68, background: 'oklch(0.78 0.01 250)', backgroundImage: 'linear-gradient(90deg,rgba(0,0,0,.06) 1px,transparent 1px)', backgroundSize: '30px 100%' }),
-        ...[0, 1].map(i => d({ left: 18 + i * 34, top: 184 + i * 6, width: 30, height: 30, background: 'oklch(0.86 0.15 92)', transform: 'rotate(45deg)', boxShadow: 'inset -6px -6px 0 oklch(0.76 0.14 85)' }, d({ left: 9, top: 9, width: 10, height: 10, background: 'oklch(0.55 0.05 250)' }))), ...[0, 1].map(i => d({ left: 30 + i * 34, top: 214 + i * 6, width: 6, height: 24 - i * 6, background: '#8a7e75' }))];
+        ...[0, 1].map(i => d({ left: 18 + i * 34, top: 184 + i * 6, width: 30, height: 30, background: 'oklch(0.86 0.15 92)', transform: 'rotate(45deg)', boxShadow: 'inset -6px -6px 0 oklch(0.76 0.14 85)' }, d({ left: 9, top: 9, width: 10, height: 10, background: 'oklch(0.55 0.05 250)' }))), ...[0, 1].map(i => d({ left: 30 + i * 34, top: 214 + i * 6, width: 6, height: 24 - i * 6, background: '#7a6e66' }))];
       case 'texel': return [sky, cloud(50, 18, 80), cloud(250, 40, 70), d({ left: 0, top: 118, width: 350, height: 40, background: 'oklch(0.66 0.1 225)' }),
         d({ left: 34, top: 50, width: 34, height: 110, background: 'oklch(0.6 0.2 25)', clipPath: 'polygon(18% 0,82% 0,100% 100%,0 100%)' }), d({ left: 34, top: 92, width: 34, height: 14, background: '#fffdf9', clipPath: 'polygon(10% 0,90% 0,93% 100%,7% 100%)' }), d({ left: 38, top: 34, width: 26, height: 18, borderRadius: '13px 13px 2px 2px', background: 'oklch(0.92 0.12 90)', boxShadow: '0 0 18px oklch(0.94 0.12 90)', animation: 'fidTwinkle 2.4s ease-in-out infinite' }), d({ left: 34, top: 50, width: 34, height: 4, background: INK }),
         ...[[-30, 140, 180], [120, 150, 160], [230, 136, 200]].map(([x, y, w]) => d({ left: x, top: y, width: w, height: 100, borderRadius: '50% 50% 0 0', background: 'oklch(0.88 0.06 85)' })),
@@ -3063,7 +3068,7 @@ class Component extends DCLogic {
       case 'friesland': return [sky, cloud(30, 22, 80), cloud(200, 46, 95),
         d({ left: 0, top: 136, width: 350, height: 16, background: 'oklch(0.7 0.1 140)' }), mill(20, 70, .45, 7), d({ left: 280, top: 92, width: 16, height: 50, background: 'oklch(0.6 0.08 40)' }), d({ left: 278, top: 76, width: 20, height: 18, background: 'oklch(0.5 0.03 200)', clipPath: 'polygon(50% 0,100% 100%,0 100%)' }),
         d({ left: 0, top: 150, width: 350, height: 96, background: 'oklch(0.66 0.09 225)', backgroundImage: 'radial-gradient(ellipse 10px 3px at 50% 100%,rgba(255,255,255,.5) 96%,transparent)', backgroundSize: '28px 14px' }),
-        ...[[60, 160, 9, 0], [200, 176, 12, 3]].map(([x, y, dur, dl]) => d({ left: x, top: y, width: 60, height: 60, animation: `fidSwim ${dur}s ${dl}s ease-in-out infinite` }, d({ left: 29, top: 0, width: 2, height: 46, background: '#8a7e75' }), d({ left: 31, top: 2, width: 24, height: 40, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)' }), d({ left: 8, top: 10, width: 20, height: 32, background: 'oklch(0.72 0.1 240)', clipPath: 'polygon(100% 0,100% 100%,0 100%)' }), d({ left: 6, top: 46, width: 50, height: 12, borderRadius: '0 0 20px 20px', background: 'oklch(0.5 0.08 50)' }))),
+        ...[[60, 160, 9, 0], [200, 176, 12, 3]].map(([x, y, dur, dl]) => d({ left: x, top: y, width: 60, height: 60, animation: `fidSwim ${dur}s ${dl}s ease-in-out infinite` }, d({ left: 29, top: 0, width: 2, height: 46, background: '#7a6e66' }), d({ left: 31, top: 2, width: 24, height: 40, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)' }), d({ left: 8, top: 10, width: 20, height: 32, background: 'oklch(0.72 0.1 240)', clipPath: 'polygon(100% 0,100% 100%,0 100%)' }), d({ left: 6, top: 46, width: 50, height: 12, borderRadius: '0 0 20px 20px', background: 'oklch(0.5 0.08 50)' }))),
         ...Array.from({ length: 10 }, (_, i) => d({ left: 270 + (i % 5) * 16, top: 214 + Math.floor(i / 5) * 10, width: 3, height: 34, background: 'oklch(0.7 0.09 90)', transform: `rotate(${(i % 3 - 1) * 6}deg)`, animation: `fidStem ${2 + (i % 3) * .5}s ease-in-out infinite`, transformOrigin: '50% 100%' })),
         d({ left: 0, top: 244, width: 350, height: 56, background: 'oklch(0.72 0.12 140)' })];
       case 'wadden': return [d({ left: 0, top: 0, width: 350, height: 300, background: 'linear-gradient(180deg,oklch(0.78 0.08 240),oklch(0.95 0.04 70))' }), cloud(40, 24, 90), cloud(220, 56, 110),
@@ -3086,7 +3091,7 @@ class Component extends DCLogic {
   castle(x, y) {
     const h = React.createElement, d = (st, ...k) => h('div', { style: { position: 'absolute', ...st } }, ...k);
     const sand = 'oklch(0.82 0.08 80)';
-    return d({ left: x, top: y, width: 80, height: 60, animation: 'fidPopIn .6s ease-out' }, d({ left: 10, top: 24, width: 60, height: 36, background: sand }), d({ left: 0, top: 10, width: 20, height: 50, background: sand, clipPath: 'polygon(0 0,25% 0,25% 12%,50% 12%,50% 0,75% 0,75% 12%,100% 12%,100% 100%,0 100%)' }), d({ left: 60, top: 10, width: 20, height: 50, background: sand, clipPath: 'polygon(0 0,25% 0,25% 12%,50% 12%,50% 0,75% 0,75% 12%,100% 12%,100% 100%,0 100%)' }), d({ left: 32, top: 40, width: 16, height: 20, borderRadius: '8px 8px 0 0', background: 'oklch(0.7 0.08 75)' }), d({ left: 8, top: -6, width: 2, height: 16, background: '#8a7e75' }), d({ left: 10, top: -6, width: 12, height: 8, background: 'oklch(0.62 0.2 25)', clipPath: 'polygon(0 0,100% 50%,0 100%)' }));
+    return d({ left: x, top: y, width: 80, height: 60, animation: 'fidPopIn .6s ease-out' }, d({ left: 10, top: 24, width: 60, height: 36, background: sand }), d({ left: 0, top: 10, width: 20, height: 50, background: sand, clipPath: 'polygon(0 0,25% 0,25% 12%,50% 12%,50% 0,75% 0,75% 12%,100% 12%,100% 100%,0 100%)' }), d({ left: 60, top: 10, width: 20, height: 50, background: sand, clipPath: 'polygon(0 0,25% 0,25% 12%,50% 12%,50% 0,75% 0,75% 12%,100% 12%,100% 100%,0 100%)' }), d({ left: 32, top: 40, width: 16, height: 20, borderRadius: '8px 8px 0 0', background: 'oklch(0.7 0.08 75)' }), d({ left: 8, top: -6, width: 2, height: 16, background: '#7a6e66' }), d({ left: 10, top: -6, width: 12, height: 8, background: 'oklch(0.62 0.2 25)', clipPath: 'polygon(0 0,100% 50%,0 100%)' }));
   }
 
   // Today's hero: a little Dutch landscape whose sky follows the clock and whose life follows Fidous's pep.
@@ -3133,8 +3138,7 @@ class Component extends DCLogic {
     const chip = (txt, extra) => h('span', { style: { font: "600 13px 'DM Sans',sans-serif", background: 'rgba(255,253,249,.9)', color: INK, borderRadius: 20, padding: '6px 11px', display: 'flex', alignItems: 'center', gap: 6, ...extra } }, ...txt);
     const head = d({ left: 16, right: 16, top: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, zIndex: 2 },
       h('div', { style: { display: 'flex', flexDirection: 'column' } },
-        h('span', { style: { font: "600 21px 'Fredoka',sans-serif", color: sky.ink } }, o.name),
-        h('span', { style: { font: "500 12px 'DM Sans',sans-serif", color: sky.ink, opacity: .85 } }, o.sceneLine)),
+        h('span', { style: { font: "600 13px 'DM Sans',sans-serif", color: sky.ink, opacity: .9, background: 'rgba(255,253,249,.22)', padding: '4px 10px', borderRadius: 12 } }, o.sceneLine)),
       h('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' } },
         o.together > 1 ? chip([h('span', { style: { width: 12, height: 11, background: 'oklch(0.66 0.19 5)', clipPath: "path('M6 11 L1 6 A2.9 2.9 0 0 1 6 1.8 A2.9 2.9 0 0 1 11 6 Z')" } }), 'Together ' + o.together]) : null,
         o.streak > 1 ? chip([h('span', { style: { width: 9, height: 12, background: 'oklch(0.7 0.17 45)', clipPath: 'polygon(50% 0,100% 60%,80% 100%,20% 100%,0 60%)' } }), o.streak + '-day streak']) : null,
@@ -3144,7 +3148,7 @@ class Component extends DCLogic {
       els.push(d({ left: -10, top: 6, width: 'calc(100% + 20px)', height: 70, borderRadius: '50%', borderBottom: '2px solid rgba(255,255,255,.7)', boxSizing: 'border-box' }));
       for (let i = 0; i < 16; i++) els.push(d({ left: (i * 6.4) + '%', top: 66 + Math.round(10 * Math.sin(Math.PI * i / 15)), width: 18, height: 20, background: cs[i % cs.length], clipPath: 'polygon(0 0,100% 0,50% 100%)', animation: `fidSway ${1.8 + (i % 3) * .3}s ease-in-out infinite`, transformOrigin: '50% 0' }));
     }
-    return h('div', { style: { position: 'relative', height: H, overflow: 'hidden', borderRadius: '30px 30px 0 0' } },
+    return h('div', { style: { position: 'relative', height: H, overflow: 'hidden' } },
       ...els, head,
       d({ left: (o.x ?? 50) + '%', bottom: 12, transform: 'translateX(-50%)', zIndex: 1, transition: 'left 2.2s ease-in-out' }, o.pigEl),
       o.pig2El ? d({ left: '72%', bottom: 14, transform: 'translateX(-50%)', zIndex: 1 }, o.pig2El) : null);
@@ -3164,7 +3168,7 @@ class Component extends DCLogic {
     [0, .5, 1].forEach(v => {
       const y = Y1 - v * (Y1 - Y0);
       kids.push(h('line', { key: 'g' + v, x1: X0, x2: X1, y1: y, y2: y, stroke: v ? '#ece4da' : '#cfc4b8', strokeWidth: 1 }));
-      kids.push(h('text', { key: 't' + v, x: X0 - 6, y: y + 3, textAnchor: 'end', fontSize: 9, fill: '#8a7e75', fontFamily: 'DM Sans, sans-serif' }, Math.round(v * 100) + '%'));
+      kids.push(h('text', { key: 't' + v, x: X0 - 6, y: y + 3, textAnchor: 'end', fontSize: 9, fill: '#7a6e66', fontFamily: 'DM Sans, sans-serif' }, Math.round(v * 100) + '%'));
     });
     days.forEach((key, i) => {
       const gx = X0 + i * gw, sel = key === o.vk, dd = dayOf(key);
@@ -3177,7 +3181,7 @@ class Component extends DCLogic {
         }
         if (st.ch) kids.push(h('circle', { key: 'c' + i + pid, cx: bx + bw / 2, cy: Y1 - bh - 7, r: 3, fill: INKC[pid], stroke: '#fffdf9', strokeWidth: 1.5 }));
       });
-      kids.push(h('text', { key: 'l' + i, x: gx + gw / 2, y: Y1 + 14, textAnchor: 'middle', fontSize: 10, fontWeight: sel ? 700 : 500, fill: sel ? INK : '#8a7e75', fontFamily: 'DM Sans, sans-serif' }, DAYS[dd.getDay()]));
+      kids.push(h('text', { key: 'l' + i, x: gx + gw / 2, y: Y1 + 14, textAnchor: 'middle', fontSize: 10, fontWeight: sel ? 700 : 500, fill: sel ? INK : '#7a6e66', fontFamily: 'DM Sans, sans-serif' }, DAYS[dd.getDay()]));
       if (dd.getDate() === 1 || i === 0 || i === n - 1) kids.push(h('text', { key: 'm' + i, x: gx + gw / 2, y: Y1 + 25, textAnchor: 'middle', fontSize: 8, fill: '#a89b90', fontFamily: 'DM Sans, sans-serif' }, i === n - 1 ? 'today' : dd.getDate() + ' ' + MON[dd.getMonth()]));
       kids.push(h('rect', { key: 'h' + i, x: gx, y: 0, width: gw, height: Y1 + 28, fill: 'transparent', style: { cursor: 'pointer' }, onClick: () => o.pick(key) },
         h('title', null, fmt(key) + ': ' + order.map(pid => { const st = stat(key, pid); return (s.profiles.find(p => p.id === pid) || {}).name + ' ' + st.d + '/' + st.n; }).join(', '))));
@@ -3192,7 +3196,7 @@ class Component extends DCLogic {
       h('svg', { viewBox: `0 0 ${W} 142`, width: '100%', role: 'img', 'aria-label': 'Share of daily tasks done each day for the last 14 days', style: { display: 'block', overflow: 'visible' } }, ...kids),
       h('div', { style: { padding: '0 4px', font: "500 13px/1.4 'DM Sans',sans-serif", color: '#5e534c', display: 'flex', justifyContent: 'space-between', gap: 8 } },
         h('span', { style: { minWidth: 0 } }, h('b', { style: { color: INK } }, fmt(o.vk) + ' · '), vkStats),
-        h('span', { style: { flex: 'none', display: 'flex', alignItems: 'center', gap: 5, color: '#8a7e75' } }, h('span', { style: { width: 6, height: 6, borderRadius: 3, background: '#8a7e75' } }), 'challenge')));
+        h('span', { style: { flex: 'none', display: 'flex', alignItems: 'center', gap: 5, color: '#7a6e66' } }, h('span', { style: { width: 6, height: 6, borderRadius: 3, background: '#7a6e66' } }), 'challenge')));
   }
 
   renderVals() {
@@ -3262,7 +3266,7 @@ class Component extends DCLogic {
           guest: visit ? { x: otherX, pigProps: { ...partnerLive, scale: .78 }, tap: () => this.say(PN + ' says hi!', 'none', 1600) } : null });
     const gUsed = s.gameCoins && s.gameCoins.d === dkey() ? s.gameCoins.n : 0;
     const toyBtns = TOYS.filter(t => s.owned.includes(t.id)).map(t => ({ label: t.verb, sub: t.name, icon: h('div', { style: { transform: 'scale(.42)', transformOrigin: '50% 50%', flex: 'none' } }, this.toyIcon(t.id)), go: () => this.playToy(t.id),
-      style: { flex: 'none', height: 54, display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 8px', borderRadius: 16, border: '1px solid #e3d9cd', background: s.sceneAct && s.sceneAct.kind === t.id ? 'oklch(0.94 0.035 10)' : '#fffdf9', cursor: 'pointer' } }));
+      style: { flex: 'none', height: 54, display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 8px', borderRadius: 16, border: '1px solid #e3d9cd', background: s.sceneAct && s.sceneAct.kind === t.id ? 'var(--accSoft)' : '#fffdf9', cursor: 'pointer' } }));
     const sceneBtns = [...(areaKind === 'room' ? [['pet', 'Pet', 'Cuddle'], ['feed', 'Feed', 'Apple'], ['ball', 'Ball', 'Fetch']] : [['pet', 'Pet', 'Cuddle'], ['catch', 'Catch', 'Game'], ['seek', 'Hide & seek', 'Game']]), ['decorate', 'Decorate', 'Style it']].map(([k, label, sub]) => ({ label, sub, go: () => this.interact(k) }));
     const G = s.game;
     let gm = { apples: [], bushes: [], result: {} };
@@ -3305,7 +3309,7 @@ class Component extends DCLogic {
       });
       const todayItems = myTasks.filter(t => t.slot === k && onDay(t, vk));
       return { key: k, label, items, empty: !items.length, emptyText: (s.tasks[s.active] || []).some(t => t.slot === k) ? (isToday ? 'Nothing for today. Enjoy the break.' : 'Nothing planned that day.') : 'Nothing here yet.',
-        nowStyle: { display: k === nowSlot && !s.editing && isToday ? 'inline-block' : 'none', font: "600 11px 'DM Sans',sans-serif", padding: '3px 8px', borderRadius: 10, background: 'oklch(0.94 0.035 10)', color: 'oklch(0.48 0.12 10)' },
+        nowStyle: { display: k === nowSlot && !s.editing && isToday ? 'inline-block' : 'none', font: "600 11px 'DM Sans',sans-serif", padding: '3px 8px', borderRadius: 10, background: 'var(--accSoft2)', color: 'var(--accInk)' },
         count: todayItems.filter(t => myDone.includes(t.id)).length + ' / ' + todayItems.length,
         ...(() => { const c = isToday && !s.editing && todayItems.length > 0 && todayItems.every(t => myDone.includes(t.id)) && !(s.openSlots || {})[k]; return { collapsed: c, open: !c, expand: () => this.setState(st => ({ openSlots: { ...(st.openSlots || {}), [k]: true } })) }; })() };
     });
@@ -3314,8 +3318,8 @@ class Component extends DCLogic {
       const len = u.unit === 'weeks' ? u.every * 7 : u.every * 30.44;
       const el = (Date.now() - new Date(u.last + 'T12:00')) / DAY, left = Math.round(len - el);
       const st = left < 0 ? 'over' : left <= 21 ? 'soon' : 'ok';
-      const chip = st === 'over' ? 'Overdue ' + (-left) + 'd' : left <= 0 ? 'Due today' : left < 60 ? 'In ' + left + ' days' : 'In ' + Math.round(left / 30.44) + ' months';
-      const col = st === 'over' ? [C.redSoft, C.redInk, C.red] : st === 'soon' ? [C.amberSoft, C.amberInk, C.amber] : [C.greenSoft, C.greenInk, C.green];
+      const chip = st === 'over' ? 'A little late · ' + (-left) + (-left === 1 ? ' day' : ' days') : left <= 0 ? 'Due today' : left < 60 ? 'In ' + left + ' days' : 'In ' + Math.round(left / 30.44) + ' months';
+      const col = st === 'over' ? ['oklch(0.93 0.06 55)', 'oklch(0.45 0.12 50)', 'oklch(0.74 0.14 55)'] : st === 'soon' ? [C.amberSoft, C.amberInk, C.amber] : [C.greenSoft, C.greenInk, C.green];
       const own = u.owner || 'both';
       return { ...u, st, left, own,
         ownerName: own === 'both' ? 'Shared' : prof(own).name,
@@ -3338,7 +3342,7 @@ class Component extends DCLogic {
       const out = x.qty === 0, isLow = x.qty <= x.min;
       return { ...x,
         meta: out ? 'Out — on the list' : isLow ? 'Running low — on the list' : x.qty + ' ' + x.unit + ' · restock at ' + x.min,
-        metaStyle: { font: (isLow ? 600 : 400) + " 13px 'DM Sans',sans-serif", color: out ? C.redInk : isLow ? C.amberInk : '#7a6e66' },
+        metaStyle: { font: (isLow ? 600 : 400) + " 13px 'DM Sans',sans-serif", color: out ? C.redInk : isLow ? C.amberInk : '#695d55' },
         inc: () => this.stockStep(x.id, 1), dec: () => this.stockStep(x.id, -1),
         edit: () => this.openSheet('stock', { id: x.id, name: x.name, qty: String(x.qty), min: String(x.min), unit: x.unit }),
         remove: () => this.setState(st => ({ stock: st.stock.filter(y => y.id !== x.id) }))
@@ -3350,7 +3354,7 @@ class Component extends DCLogic {
     if (low.length) alerts.push({ n: low.length, label: low.length === 1 ? 'item to restock' : 'items to restock', go: () => this.setState({ tab: 'stock' }), style: { flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', background: C.amberSoft, color: C.amberInk } });
 
     const band = hue => ({ padding: '18px 18px 16px', background: `oklch(0.9 0.06 ${hue})`, display: 'flex', flexDirection: 'column', gap: 4, color: INK });
-    const btn = on => ({ height: 50, borderRadius: 16, border: 'none', cursor: on ? 'pointer' : 'default', font: "600 16px 'DM Sans',sans-serif", background: on ? INK : '#efe7dd', color: on ? '#fffdf9' : '#7a6e66' });
+    const btn = on => ({ height: 50, borderRadius: 16, border: 'none', cursor: on ? 'pointer' : 'default', font: "600 16px 'DM Sans',sans-serif", background: on ? INK : '#efe7dd', color: on ? '#fffdf9' : '#695d55' });
     const noop = () => {};
     let adv;
     if (s.adv) {
@@ -3397,12 +3401,12 @@ class Component extends DCLogic {
       const tag = worn ? 'Wearing' : owned ? 'Owned' : locked ? (it.event ? 'Event: ' + (EVENTS.find(e => e.id === it.event) || {}).name : 'Adventure ' + (it.from + 1)) : it.price + ' coins';
       return { ...card(it, worn, locked), ...gChip(it.g), name: it.name, tag, tap: () => this.tapItem(it),
         preview: this.pig({ mood: 'ok', sex: it.g || myPig.sex, wear: { [it.slot]: it.id }, still: true, scale: .5 }),
-        tagStyle: { font: "500 12px 'DM Sans',sans-serif", color: worn ? C.greenInk : !owned && !locked && bal >= it.price ? C.amberInk : '#7a6e66' } };
+        tagStyle: { font: "500 12px 'DM Sans',sans-serif", color: worn ? C.greenInk : !owned && !locked && bal >= it.price ? C.amberInk : '#695d55' } };
     });
     const toyCards = TOYS.map(it => {
       const owned = s.owned.includes(it.id);
       return { ...card(it, false, false), ...gChip(null), name: it.name, tag: owned ? 'Tap to play' : it.price + ' coins', tap: () => this.tapToy(it), preview: this.toyIcon(it.id),
-        tagStyle: { font: "500 12px 'DM Sans',sans-serif", color: owned ? C.greenInk : bal >= it.price ? C.amberInk : '#7a6e66' } };
+        tagStyle: { font: "500 12px 'DM Sans',sans-serif", color: owned ? C.greenInk : bal >= it.price ? C.amberInk : '#695d55' } };
     });
 
     const ownerName = o => o === 'both' ? 'Both' : prof(o).name;
@@ -3432,23 +3436,23 @@ class Component extends DCLogic {
             remove: () => this.updJ(J.id, j => ({ ...j, steps: j.steps.filter(x => x.id !== st.id) })),
             lineTop: { width: 2, height: 18, background: i === 0 ? 'transparent' : (st.done ? C.green : '#e8dfd4') },
             lineBottom: { width: 2, flex: 1, background: i === J.steps.length - 1 ? 'transparent' : (st.done ? C.green : '#e8dfd4') },
-            dotStyle: { width: 24, height: 24, flex: 'none', borderRadius: 12, padding: 0, cursor: 'pointer', boxSizing: 'border-box', border: st.done ? 'none' : '2px solid ' + (next ? C.pink : '#d9cec2'), background: st.done ? C.green : next ? 'oklch(0.94 0.035 10)' : '#fffdf9', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            dotStyle: { width: 24, height: 24, flex: 'none', borderRadius: 12, padding: 0, cursor: 'pointer', boxSizing: 'border-box', border: st.done ? 'none' : '2px solid ' + (next ? C.pink : '#d9cec2'), background: st.done ? C.green : next ? 'var(--accSoft)' : '#fffdf9', display: 'flex', alignItems: 'center', justifyContent: 'center' },
             tickStyle: { width: 9, height: 5, borderLeft: '2.5px solid #fff', borderBottom: '2.5px solid #fff', transform: 'rotate(-45deg) translate(1px,-1px)', opacity: st.done ? 1 : 0 },
             textStyle: { font: (next ? 600 : 500) + " 16px/1.3 'DM Sans',sans-serif", color: st.done ? '#9b8f86' : INK, textDecoration: st.done ? 'line-through' : 'none' } };
         }),
         apps: apps.map(a => {
-          const i = STAGES.indexOf(a.stage), col = [[C.amberSoft, C.amberInk], ['oklch(0.94 0.035 240)', 'oklch(0.42 0.09 240)'], [C.greenSoft, C.greenInk], ['#efe7dd', '#7a6e66']][i];
+          const i = STAGES.indexOf(a.stage), col = [[C.amberSoft, C.amberInk], ['oklch(0.94 0.035 240)', 'oklch(0.42 0.09 240)'], [C.greenSoft, C.greenInk], ['#efe7dd', '#695d55']][i];
           return { ...a, stageStyle: { height: 34, padding: '0 12px', borderRadius: 17, border: 'none', cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif", background: col[0], color: col[1] },
             cycle: () => { const nxt = STAGES[(i + 1) % STAGES.length]; this.updJ(J.id, j => ({ ...j, apps: j.apps.map(x => x.id === a.id ? { ...x, stage: nxt } : x) })); if (nxt === 'Offer') { this.setState(st => this.award(st, 10)); this.toastMsg('An offer! +10 coins'); } },
             remove: () => this.updJ(J.id, j => ({ ...j, apps: j.apps.filter(x => x.id !== a.id) })) };
         }),
         noApps: !apps.length,
         stageCounts: STAGES.map((label, i) => ({ label, n: apps.filter(a => a.stage === label).length,
-          style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '10px 4px', borderRadius: 16, background: '#fffdf9', color: [C.amberInk, 'oklch(0.42 0.09 240)', C.greenInk, '#7a6e66'][i] } })) };
+          style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '10px 4px', borderRadius: 16, background: '#fffdf9', color: [C.amberInk, 'oklch(0.42 0.09 240)', C.greenInk, '#695d55'][i] } })) };
     }
 
     const f = s.f;
-    const segStyle = on => ({ flex: 1, height: 44, borderRadius: 12, border: 'none', cursor: 'pointer', font: "600 15px 'DM Sans',sans-serif", background: on ? '#fffdf9' : 'transparent', boxShadow: on ? '0 1px 3px rgba(42,35,32,.12)' : 'none', color: on ? INK : '#7a6e66' });
+    const segStyle = on => ({ flex: 1, height: 44, borderRadius: 12, border: 'none', cursor: 'pointer', font: "600 15px 'DM Sans',sans-serif", background: on ? '#fffdf9' : 'transparent', boxShadow: on ? '0 1px 3px rgba(42,35,32,.12)' : 'none', color: on ? INK : '#695d55' });
     const toBuyN = low.length + (s.shop || []).filter(x => !x.done).length;
     const tabsDef = [['today', 'Today', 0], ['fidous', N, isBack || ready || myGifts.length ? '!' : 0], ['upkeep', 'Upkeep', overdue], ['stock', 'Shopping', toBuyN], ['journeys', 'Journeys', 0]];
     const titles = { music: 'Music', weekend: 'Weekend ideas for two', tour: ['Tick off your day', N + '’s world', 'Shared with ' + prof(partnerId).name][f.step || 0], pigname: f.first ? 'Name your piggy' : 'Your piggy', welcome: 'Who’s using this phone?', challenges: 'Challenge list', task: f.id ? 'Edit task' : 'New daily task', upkeep: 'New upkeep job', stock: f.id ? 'Edit item' : 'Track an item', journey: 'New journey', settings: 'Settings', postcard: 'A postcard from Fidous' };
@@ -3512,7 +3516,7 @@ class Component extends DCLogic {
     const E = (t, st, ...k) => h(t, { style: st }, ...k);
     const btnS = (on, extra) => ({ height: 44, padding: '0 14px', borderRadius: 14, border: on ? 'none' : '1px solid #e3d9cd', background: on ? INK : '#fffdf9', color: on ? '#fffdf9' : INK, font: "600 14px 'DM Sans',sans-serif", cursor: 'pointer', ...extra });
     const cardS = { background: '#fffdf9', borderRadius: 24, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 };
-    const titleS = { font: "600 18px 'Fredoka',sans-serif" }, mutedS = { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#7a6e66', textWrap: 'pretty' };
+    const titleS = { font: "600 18px 'Fredoka',sans-serif" }, mutedS = { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#695d55', textWrap: 'pretty' };
 
     // Decorate panel
     let decoEl = null;
@@ -3528,7 +3532,7 @@ class Component extends DCLogic {
       const card = (it, tag, tagC, onClick, on) => h('button', { key: it.id, onClick, style: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px 10px', borderRadius: 18, border: '2px solid ' + (on ? INK : 'transparent'), background: STYLES[it.style] ? STYLES[it.style].soft : '#f6f1ea', cursor: 'pointer', minWidth: 0 } },
         this.preview(it), E('span', { font: "600 13px/1.2 'DM Sans',sans-serif", textAlign: 'center' }, it.name),
         E('span', { display: 'flex', alignItems: 'center', gap: 4, font: "500 11px 'DM Sans',sans-serif", color: '#5e534c' }, styleDot(it.style), STYLES[it.style].name),
-        E('span', { font: "600 12px 'DM Sans',sans-serif", color: tagC || '#7a6e66' }, tag));
+        E('span', { font: "600 12px 'DM Sans',sans-serif", color: tagC || '#695d55' }, tag));
       let bar;
       const selInst = !decoOther && s.decoSel && s.decoSel !== 'preview' ? (A.items || []).find(i => i.u === s.decoSel) : null;
       const barS = { display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 18 };
@@ -3544,7 +3548,7 @@ class Component extends DCLogic {
         bar = E('div', { ...barS, background: '#f6f1ea' },
           E('div', { display: 'flex', alignItems: 'center', gap: 8 }, styleDot(it.style), E('span', { font: "600 15px 'DM Sans',sans-serif", flex: 1 }, it.name), E('span', mutedS, 'Drag to move')),
           E('div', { display: 'flex', gap: 6 }, small('Flip', () => this.flipSel()), small('Put away', () => this.storeSel()), small('Done', () => this.setState({ decoSel: null }), true)),
-          E('div', { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }, E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Move to'),
+          E('div', { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }, E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#695d55' }, 'Move to'),
             ...AREAS.filter(a2 => a2.id !== area && a2.kind === areaKind).map(a2 => h('button', { key: a2.id, onClick: () => this.moveSel(a2.id), style: { height: 30, padding: '0 10px', borderRadius: 15, border: '1px solid #e3d9cd', background: '#fffdf9', font: "600 12px 'DM Sans',sans-serif", cursor: 'pointer' } }, a2.name))));
       } else bar = E('div', { ...barS, background: '#f6f1ea' }, E('span', mutedS, decoOther ? 'Pick something for ' + PN + '. Drag it to a spot in ' + PN + '’s ' + (AREAS.find(a => a.id === area) || {}).name.toLowerCase() + ', then send it. It arrives as a wrapped present.' : 'Tap any piece in the room to move it, flip it or put it away. Swipe the room sideways to reach the other side.'));
       let body;
@@ -3563,7 +3567,7 @@ class Component extends DCLogic {
         const rows = areaKind === 'garden' ? [['ground', 'Lawn'], ['fence', 'Fence']] : [['wall', 'Walls'], ['floor', 'Floor']];
         body = rows.map(([slot, label]) => E('div', { display: 'flex', flexDirection: 'column', gap: 6 }, E('span', titleS, label),
           E('div', { display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 },
-            h('button', { key: 'plain', onClick: () => decoOther ? null : this.clearPaint(slot), style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120, borderRadius: 18, border: '2px solid ' + (!(A.paint || {})[slot] ? INK : 'transparent'), background: '#f6f1ea', cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif" } }, 'Plain', E('span', { font: "500 11px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Free')),
+            h('button', { key: 'plain', onClick: () => decoOther ? null : this.clearPaint(slot), style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120, borderRadius: 18, border: '2px solid ' + (!(A.paint || {})[slot] ? INK : 'transparent'), background: '#f6f1ea', cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif" } }, 'Plain', E('span', { font: "500 11px 'DM Sans',sans-serif", color: '#695d55' }, 'Free')),
             ...DECO.filter(it => it.slot === slot).map(it => { const ownedP = (tHome.own[it.id] || 0) > 0, on = (A.paint || {})[slot] === it.id;
               return card(it, on ? 'Chosen' : !decoOther && ownedP ? 'Owned · tap to use' : (decoOther ? 'Gift · ' : '') + it.price + ' coins', on ? C.greenInk : null, () => !decoOther && ownedP ? this.placeOwned(it.id) : this.decoPick(it), on || (P && P.id === it.id)); }))));
       }
@@ -3608,7 +3612,7 @@ class Component extends DCLogic {
           })),
           T.over ? h('button', { onClick: () => this.newGame('ttt'), style: btnS(true) }, 'New game') : null);
       } else if (R) {
-        const icon = k => k === 'rock' ? E('span', { width: 26, height: 22, borderRadius: '45% 55% 40% 50%', background: '#a89b90' }) : k === 'paper' ? E('span', { width: 22, height: 26, borderRadius: 3, background: '#fffdf9', boxShadow: 'inset 0 0 0 2px #cfc4b8' }) : E('span', { position: 'relative', width: 26, height: 26 }, E('span', { position: 'absolute', left: 11, top: 0, width: 4, height: 26, borderRadius: 2, background: '#7a6e66', transform: 'rotate(30deg)' }), E('span', { position: 'absolute', left: 11, top: 0, width: 4, height: 26, borderRadius: 2, background: '#7a6e66', transform: 'rotate(-30deg)' }));
+        const icon = k => k === 'rock' ? E('span', { width: 26, height: 22, borderRadius: '45% 55% 40% 50%', background: '#a89b90' }) : k === 'paper' ? E('span', { width: 22, height: 26, borderRadius: 3, background: '#fffdf9', boxShadow: 'inset 0 0 0 2px #cfc4b8' }) : E('span', { position: 'relative', width: 26, height: 26 }, E('span', { position: 'absolute', left: 11, top: 0, width: 4, height: 26, borderRadius: 2, background: '#695d55', transform: 'rotate(30deg)' }), E('span', { position: 'absolute', left: 11, top: 0, width: 4, height: 26, borderRadius: 2, background: '#695d55', transform: 'rotate(-30deg)' }));
         const status = R.over ? (R.winner === 'me' ? 'You win the match!' : PN + ' wins the match!') : R.canPick ? 'Pick one · first to 3 wins' : 'Waiting for ' + prof(partnerId).name + ' to pick…';
         gameEl = E('div', { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 },
           E('span', { font: "600 22px 'Fredoka',sans-serif" }, 'You ' + R.me + ' · ' + R.them + ' ' + PN),
@@ -3635,12 +3639,12 @@ class Component extends DCLogic {
       const xp = myPig.xp || {}, ageD = Math.max(0, Math.round((dayOf(today) - dayOf(myPig.born || today)) / DAY)), bd = dayOf(myPig.born || today);
       const top = [...STATS].sort((a, b) => (xp[b.id] || 0) - (xp[a.id] || 0))[0], persona = (xp[top.id] || 0) >= 10 ? top.persona : myPig.sex === 'f' ? 'Curious piglet' : 'Curious duckling';
       const total = STATS.reduce((n, t) => n + level(xp[t.id]), 0), ctx = this.achCtx(s.active), got = myPig.ach || [];
-      const fact = (label, value) => E('div', { display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px', borderRadius: 16, background: '#f6f1ea', minWidth: 0 }, E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, label), E('span', { font: "600 15px/1.25 'DM Sans',sans-serif" }, value));
+      const fact = (label, value) => E('div', { display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px', borderRadius: 16, background: '#f6f1ea', minWidth: 0 }, E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#695d55' }, label), E('span', { font: "600 15px/1.25 'DM Sans',sans-serif" }, value));
       const statRows = STATS.map(t => {
         const v = xp[t.id] || 0, l = level(v), lo = LV[l - 1], hi = LV[l] ?? lo, pct = l >= 10 ? 100 : Math.round(100 * (v - lo) / Math.max(1, hi - lo));
         return E('div', { display: 'grid', gridTemplateColumns: '70px 1fr 44px', alignItems: 'center', gap: 10 },
-          E('span', { display: 'flex', flexDirection: 'column' }, E('span', { font: "600 14px 'DM Sans',sans-serif" }, t.name), E('span', { font: "400 11px 'DM Sans',sans-serif", color: '#8a7e75' }, l >= 10 ? 'max' : (hi - v) + ' to go')),
-          E('div', { display: 'flex', flexDirection: 'column', gap: 3 }, E('div', { height: 10, borderRadius: 5, background: '#f1e9df', overflow: 'hidden' }, E('div', { height: '100%', width: Math.max(3, pct) + '%', borderRadius: 5, background: t.c, transition: 'width .4s' })), E('span', { font: "400 11px 'DM Sans',sans-serif", color: '#8a7e75' }, t.from)),
+          E('span', { display: 'flex', flexDirection: 'column' }, E('span', { font: "600 14px 'DM Sans',sans-serif" }, t.name), E('span', { font: "400 11px 'DM Sans',sans-serif", color: '#7a6e66' }, l >= 10 ? 'max' : (hi - v) + ' to go')),
+          E('div', { display: 'flex', flexDirection: 'column', gap: 3 }, E('div', { height: 10, borderRadius: 5, background: '#f1e9df', overflow: 'hidden' }, E('div', { height: '100%', width: Math.max(3, pct) + '%', borderRadius: 5, background: t.c, transition: 'width .4s' })), E('span', { font: "400 11px 'DM Sans',sans-serif", color: '#7a6e66' }, t.from)),
           E('span', { font: "600 15px 'Fredoka',sans-serif", textAlign: 'right', color: t.c }, 'Lv ' + l));
       });
       const achEls = ACH.map(([id, name, desc, reward, fn]) => {
@@ -3648,9 +3652,9 @@ class Component extends DCLogic {
         return E('div', { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid #f3ece3', opacity: done ? 1 : .8 },
           E('span', { width: 36, height: 36, flex: 'none', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? 'oklch(0.86 0.12 85)' : '#efe7dd', boxShadow: done ? 'inset 0 0 0 3px oklch(0.72 0.12 75)' : 'none' },
             E('span', { width: 18, height: 18, background: done ? 'oklch(0.58 0.13 70)' : '#cfc4b8', clipPath: 'polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' })),
-          E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 14px 'DM Sans',sans-serif" }, name), E('span', { font: "400 12px/1.3 'DM Sans',sans-serif", color: '#7a6e66' }, desc),
+          E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 14px 'DM Sans',sans-serif" }, name), E('span', { font: "400 12px/1.3 'DM Sans',sans-serif", color: '#695d55' }, desc),
             done ? null : E('div', { height: 5, borderRadius: 3, background: '#f1e9df', overflow: 'hidden', marginTop: 2 }, E('div', { height: '100%', width: Math.min(100, Math.round(100 * have / need)) + '%', background: C.amber }))),
-          E('span', { flex: 'none', font: "600 12px 'DM Sans',sans-serif", color: done ? C.greenInk : '#8a7e75' }, done ? 'Earned' : Math.min(have, need) + '/' + need));
+          E('span', { flex: 'none', font: "600 12px 'DM Sans',sans-serif", color: done ? C.greenInk : '#7a6e66' }, done ? 'Earned' : Math.min(have, need) + '/' + need));
       });
       const pXp = partnerPig.xp || {}, pTop = [...STATS].sort((a, b) => (pXp[b.id] || 0) - (pXp[a.id] || 0))[0];
       profileEl = E('div', { display: 'flex', flexDirection: 'column', gap: 14 },
@@ -3687,7 +3691,7 @@ class Component extends DCLogic {
         : [E('div', { display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }, E('span', { font: "600 24px/1.15 'Fredoka',sans-serif", color: INK }, word.nl), listen(word.nl)),
            s.learnShow ? E('span', { font: "600 15px 'DM Sans',sans-serif", color: 'oklch(0.45 0.12 45)' }, word.en) : null,
            s.learnShow && word.ex ? E('div', { display: 'flex', alignItems: 'center', gap: 6 }, E('span', { font: "italic 400 14px/1.4 'DM Sans',sans-serif", color: '#4a3f38', flex: 1 }, '“' + word.ex + '”'), listen(word.ex)) : null,
-           s.learnShow && word.exEn ? E('span', { font: "400 13px/1.4 'DM Sans',sans-serif", color: '#7a6e66' }, word.exEn) : null];
+           s.learnShow && word.exEn ? E('span', { font: "400 13px/1.4 'DM Sans',sans-serif", color: '#695d55' }, word.exEn) : null];
       lBtns = !word ? [] : !s.learnShow ? [h('button', { key: 'show', onClick: () => this.setState({ learnShow: true }), style: btnS(true, { flex: 1 }) }, 'Show meaning')]
         : [h('button', { key: 'knew', onClick: () => this.srsAnswer(word, true), style: btnS(true, { flex: 1 }) }, 'I knew it'), h('button', { key: 'next', onClick: () => this.srsAnswer(word, false), style: btnS(false, { flex: 1 }) }, 'Still learning')];
     } else if (lk === 'quiz') {
@@ -3712,9 +3716,9 @@ class Component extends DCLogic {
     const stDone = myPig.stories || {}, stReadN = STORIES.filter(x => stDone[x.id]).length;
     const storiesBtn = !STORIES.length ? null : h('button', { onClick: () => this.storyOpen(null), 'aria-label': 'Fidous stories', style: { display: 'flex', alignItems: 'center', gap: 12, padding: 0, paddingRight: 14, border: 'none', borderRadius: 18, overflow: 'hidden', background: '#fffdf9', cursor: 'pointer', textAlign: 'left', boxShadow: '0 2px 8px rgba(60,40,30,.06)' } },
       E('div', { flex: 'none', width: 104, height: 70 }, stageBox(STORIES[stReadN % STORIES.length], coverOf(STORIES[stReadN % STORIES.length]), 104, 70, 'lc', .7)),
-      E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 17px 'Fredoka',sans-serif", color: INK }, 'Fidous stories'), E('span', { font: "500 12px/1.35 'DM Sans',sans-serif", color: '#7a6e66' }, stReadN + ' of ' + STORIES.length + ' read · picture books in A1 Dutch')),
-      E('span', { font: "500 24px 'DM Sans',sans-serif", color: '#8a7e75' }, '›'));
-    const learnEl = E('div', { ...cardS, background: 'oklch(0.95 0.035 210)', gap: 10 },
+      E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 17px 'Fredoka',sans-serif", color: INK }, 'Fidous stories'), E('span', { font: "500 12px/1.35 'DM Sans',sans-serif", color: '#695d55' }, stReadN + ' of ' + STORIES.length + ' read · picture books in A1 Dutch')),
+      E('span', { font: "500 24px 'DM Sans',sans-serif", color: '#7a6e66' }, '›'));
+    const learnEl = E('div', { ...cardS, background: '#fffdf9', gap: 10 },
       E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
         E('span', titleS, 'Learn with ' + N), E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#5e534c', textAlign: 'right' }, learnSub)),
       examDays != null && examDays >= 0 ? E('div', { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 14, background: examDays <= 30 ? 'oklch(0.94 0.05 50)' : 'rgba(255,253,249,.7)', font: "600 13px 'DM Sans',sans-serif", color: examDays <= 30 ? 'oklch(0.45 0.12 45)' : '#4a3f38' },
@@ -3724,7 +3728,7 @@ class Component extends DCLogic {
       E('div', { display: 'flex', alignItems: 'flex-end', gap: 8 },
         E('div', { flex: 'none' }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .4 })),
         E('div', { position: 'relative', flex: 1, minWidth: 0, background: '#fffdf9', borderRadius: '18px 18px 18px 4px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 4 },
-          E('span', { font: "600 11px 'DM Sans',sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', color: '#8a7e75' }, lk === 'dutch' ? (word && srs[word.nl] ? 'Review' : 'New word') : lk === 'quiz' ? (qi && qi.topic === 'traffic' ? 'Traffic quiz' : 'KNM quiz') : lk === 'knm' ? 'For the KNM exam' : 'Did you know?'), ...bubbleBody)),
+          E('span', { font: "600 11px 'DM Sans',sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', color: '#7a6e66' }, lk === 'dutch' ? (word && srs[word.nl] ? 'Review' : 'New word') : lk === 'quiz' ? (qi && qi.topic === 'traffic' ? 'Traffic quiz' : 'KNM quiz') : lk === 'knm' ? 'For the KNM exam' : 'Did you know?'), ...bubbleBody)),
       lBtns.length ? E('div', { display: 'flex', gap: 8 }, ...lBtns) : null,
       storiesBtn);
     // Task ideas, grouped in categories, for the New daily task sheet.
@@ -3733,7 +3737,7 @@ class Component extends DCLogic {
       const cat = IDEAS.find(c => c.id === f.ideaCat) || IDEAS[0], have = (s.tasks[s.active] || []).map(t => t.name.toLowerCase() + '|' + t.slot);
       const slotDot = { morning: 'oklch(0.82 0.12 75)', day: 'oklch(0.75 0.1 220)', evening: 'oklch(0.6 0.1 290)' };
       ideasEl = cat ? E('div', { display: 'flex', flexDirection: 'column', gap: 10, background: 'oklch(0.96 0.025 150)', borderRadius: 20, padding: 12 },
-        E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, E('span', { font: "600 16px 'Fredoka',sans-serif" }, 'Pick an idea'), E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Tap one to use it')),
+        E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, E('span', { font: "600 16px 'Fredoka',sans-serif" }, 'Pick an idea'), E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#695d55' }, 'Tap one to use it')),
         E('div', { display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -12px', padding: '0 12px 2px' },
           ...IDEAS.map(c => h('button', { key: c.id, onClick: () => this.setF('ideaCat', c.id), style: { flex: 'none', height: 34, padding: '0 12px', borderRadius: 17, border: 'none', cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif", background: c.id === cat.id ? INK : 'rgba(255,253,249,.9)', color: c.id === cat.id ? '#fffdf9' : INK } }, c.name))),
         E('div', { display: 'flex', flexWrap: 'wrap', gap: 6 },
@@ -3743,14 +3747,14 @@ class Component extends DCLogic {
               style: { display: 'flex', alignItems: 'center', gap: 7, minHeight: 38, padding: '6px 12px', borderRadius: 19, cursor: added ? 'default' : 'pointer', textAlign: 'left', font: "500 14px/1.25 'DM Sans',sans-serif", border: on ? 'none' : '1px solid #e3d9cd', background: on ? INK : '#fffdf9', color: on ? '#fffdf9' : INK, opacity: added ? .45 : 1, transition: 'all .15s' } },
               E('span', { width: 8, height: 8, borderRadius: 4, flex: 'none', background: slotDot[it.slot] }), it.name + (added ? ' · added' : ''));
           })),
-        E('div', { display: 'flex', gap: 12, font: "500 11px 'DM Sans',sans-serif", color: '#7a6e66' }, ...SLOTS.map(([k, label]) => E('span', { display: 'flex', alignItems: 'center', gap: 4 }, E('span', { width: 7, height: 7, borderRadius: 4, background: slotDot[k] }), label)))) : null;
+        E('div', { display: 'flex', gap: 12, font: "500 11px 'DM Sans',sans-serif", color: '#695d55' }, ...SLOTS.map(([k, label]) => E('span', { display: 'flex', alignItems: 'center', gap: 4 }, E('span', { width: 7, height: 7, borderRadius: 4, background: slotDot[k] }), label)))) : null;
     }
     // Home at a glance on the Today screen: tap a room to go there.
     const tileW = Math.floor(((framed ? 390 : s.vw) - 40 - 10) / 2);
     const homeCardEl = s.tab !== 'today' ? null : E('div', { display: 'flex', flexDirection: 'column', gap: 10 },
       E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' },
         E('span', { font: "600 17px 'Fredoka',sans-serif" }, N + '’s home'),
-        h('button', { onClick: () => this.setState({ tab: 'fidous', pigTab: 'home', deco: { who: s.active, tab: 'shop', cat: null, style: 'all' }, decoPrev: null, decoSel: null }), style: { border: 'none', background: 'none', padding: 0, cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif", color: 'oklch(0.5 0.12 300)' } }, 'Decorate ›')),
+        h('button', { onClick: () => this.setState({ tab: 'fidous', pigTab: 'home', deco: { who: s.active, tab: 'shop', cat: null, style: 'all' }, decoPrev: null, decoSel: null }), style: { border: 'none', background: 'none', padding: 0, cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif", color: 'var(--accInk)' } }, 'Decorate ›')),
       E('div', { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 },
         ...AREAS.map(a => h('button', { key: a.id, onClick: () => { this._sceneChosen = true; this.setState({ tab: 'fidous', pigTab: 'home', scene: a.id, deco: null }); }, 'aria-label': 'Go to the ' + a.name.toLowerCase(),
           style: { position: 'relative', padding: 0, border: 'none', borderRadius: 18, overflow: 'hidden', cursor: 'pointer', background: '#efe6da', height: Math.round(tileW * 300 / AREA_W) + 2, boxShadow: s.scene === a.id ? '0 0 0 2.5px ' + INK : 'none' } },
@@ -3772,7 +3776,7 @@ class Component extends DCLogic {
     const dow = dayOf(today).getDay();
     if (s.tab === 'today' && (dow === 0 || dow === 1)) {
       const mon = this.weekStart(dow === 1 ? addDays(today, -1) : today), W = this.weekStats(mon), mineW = W.per.find(x => x.p === s.active), bonus = Math.min(14, mineW.active * 2), got = (myPig.weeks || []).includes(mon);
-      weekEl = E('div', { ...cardS, background: 'oklch(0.95 0.04 85)', gap: 10 },
+      weekEl = E('div', { ...cardS, background: '#fffdf9', gap: 10 },
         E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, E('span', titleS, dow === 0 ? 'Your week so far' : 'Last week'), E('span', mutedS, fmt(mon) + ' – ' + fmt(addDays(mon, 6)))),
         E('div', { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }, ...W.per.map(x => E('div', { background: '#fffdf9', borderRadius: 16, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 2 },
           E('span', { font: "600 14px 'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }, E('span', { width: 8, height: 8, borderRadius: 4, background: INKC[x.p] }), prof(x.p).name),
@@ -3795,16 +3799,56 @@ class Component extends DCLogic {
         h('button', { onClick: () => step < 2 ? this.setF('step', step + 1) : finish(), style: btnS(true, { height: 52, width: '100%', font: "600 17px 'DM Sans',sans-serif" }) }, step < 2 ? 'Next' : 'Let’s go!'));
     }
     const sw = (label, sub, on, fn) => h('button', { key: label, onClick: fn, style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', borderRadius: 16, border: 'none', background: '#f6f1ea', cursor: 'pointer', textAlign: 'left' } },
-      E('span', { display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, label), E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#7a6e66' }, sub)),
+      E('span', { display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, label), E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#695d55' }, sub)),
       E('span', { flex: 'none', width: 46, height: 28, borderRadius: 14, background: on ? C.green : '#d9cec2', position: 'relative', transition: 'background .2s' }, E('span', { position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fffdf9', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s' })));
     const uiEl = s.sheet !== 'settings' ? null : E('div', { display: 'flex', flexDirection: 'column', gap: 8 },
       sw('Simple Today', 'Just your tasks, one Dutch item and your piggy. The rest is one tap away.', simpleToday, () => this.setUi({ uiSimple: !simpleToday, todayMore: false })),
+      sw('Evening glow', 'A warm, dimmer look after sunset', s.uiGlow !== false, () => this.setUi({ uiGlow: s.uiGlow === false })),
       sw('Larger text', 'Makes everything a bit bigger on this phone', !!s.uiBig, () => this.setUi({ uiBig: !s.uiBig })),
       sw('Calmer motion', 'Fewer animations on this phone', !!s.uiCalm, () => this.setUi({ uiCalm: !s.uiCalm })),
       sw('Music', s.uiMusic !== false ? 'Now playing: ' + TRACKS[Sound.i][1] : 'Calm songs in the background, paused while Dutch is read aloud', s.uiMusic !== false, () => { const on = s.uiMusic === false; this.setUi({ uiMusic: on }); Sound.setMusic(on); }),
       h('button', { key: 'player', onClick: () => this.setState({ sheet: 'music' }), style: { height: 40, border: 'none', background: 'none', font: "500 14px 'DM Sans',sans-serif", color: '#5e534c', cursor: 'pointer' } }, 'Open the music player ›'),
       sw('Sound effects', 'Little sounds when you tap, earn coins and celebrate', s.uiFx !== false, () => { const on = s.uiFx === false; Sound.sfx = on; this.setUi({ uiFx: on }); if (on) Sound.fx('sparkle'); }),
       h('button', { onClick: () => this.setState({ sheet: 'tour', f: { step: 0 } }), style: { height: 40, border: 'none', background: 'none', font: "500 14px 'DM Sans',sans-serif", color: '#5e534c', cursor: 'pointer' } }, 'Show the welcome tour again'));
+    // ---- Art direction: one storybook world on every tab ----
+    const D2 = (st, ...k) => h('div', { style: { position: 'absolute', ...st } }, ...k);
+    const night0 = sky.name === 'night' || sky.name === 'dusk';
+    // Illustrated headers for the household tabs: the companion busy with the job at hand.
+    const props = {
+      upkeep: [D2({ left: 70, top: 34, width: 36, height: 9, borderRadius: 5, background: 'oklch(0.7 0.02 250)', transform: 'rotate(-38deg)', boxShadow: 'inset 0 -2px 0 oklch(0.6 0.02 250)' }), D2({ left: 92, top: 16, width: 18, height: 18, borderRadius: 9, border: '5px solid oklch(0.7 0.02 250)', borderRightColor: 'transparent', boxSizing: 'border-box', transform: 'rotate(-38deg)' }),
+        D2({ left: 4, top: 62, width: 30, height: 20, borderRadius: 5, background: 'oklch(0.6 0.15 25)', boxShadow: 'inset 0 -4px 0 oklch(0.52 0.15 25)' }, D2({ left: 9, top: -6, width: 12, height: 7, borderRadius: '5px 5px 0 0', border: '2.5px solid oklch(0.52 0.15 25)', borderBottom: 'none', boxSizing: 'border-box' }))],
+      stock: [D2({ left: 72, top: 50, width: 40, height: 30, borderRadius: '4px 4px 12px 12px', background: 'repeating-linear-gradient(90deg,oklch(0.72 0.09 65) 0 5px,oklch(0.64 0.09 60) 5px 8px)' }, D2({ left: 6, top: -16, width: 28, height: 20, borderRadius: '14px 14px 0 0', border: '3px solid oklch(0.6 0.09 60)', borderBottom: 'none', boxSizing: 'border-box' })),
+        D2({ left: 76, top: 34, width: 12, height: 22, borderRadius: 6, background: 'oklch(0.78 0.09 70)', transform: 'rotate(-14deg)' }), D2({ left: 94, top: 30, width: 6, height: 26, borderRadius: 3, background: 'oklch(0.62 0.15 145)', transform: 'rotate(12deg)' }), D2({ left: 98, top: 42, width: 14, height: 14, borderRadius: 7, background: 'oklch(0.62 0.2 28)' })],
+      journeys: [D2({ left: 58, top: 46, width: 46, height: 34, background: 'oklch(0.95 0.03 85)', borderRadius: 3, transform: 'rotate(-6deg)', boxShadow: '0 2px 6px rgba(60,40,30,.15)', backgroundImage: 'linear-gradient(90deg,transparent 32%,rgba(0,0,0,.06) 33% 34%,transparent 35% 65%,rgba(0,0,0,.06) 66% 67%,transparent 68%)' },
+          D2({ left: 6, top: 8, width: 32, height: 18, borderTop: '2.5px dashed oklch(0.6 0.17 25)', borderRadius: '50% 50% 0 0', boxSizing: 'border-box' }), D2({ left: 32, top: 4, width: 7, height: 7, borderRadius: '50% 50% 50% 0', background: 'oklch(0.6 0.17 25)', transform: 'rotate(-45deg)' }))]
+    };
+    const tabBanner = (kind, text) => E('div', { position: 'relative', display: 'flex', alignItems: 'center', gap: 10, minHeight: 104, padding: '10px 16px 10px 8px', borderRadius: 26, overflow: 'hidden', background: 'linear-gradient(120deg, var(--accSoft2), var(--accSoft) 55%, #fffdf9)' },
+      D2({ right: -30, top: -40, width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,253,249,.55)' }), D2({ right: 40, bottom: -50, width: 90, height: 90, borderRadius: '50%', background: 'rgba(255,253,249,.4)' }),
+      h('div', { style: { position: 'relative', flex: 'none', width: kind === 'journeys' ? 150 : 118, height: 86 } },
+        kind === 'journeys' ? D2({ left: 92, top: 18 }, this.pig({ mood: 'joy', sex: partnerPig.sex, wear: partnerPig.wear || {}, still: true, scale: .42 })) : null,
+        D2({ left: 0, top: 6 }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .5 })), ...(props[kind] || [])),
+      E('span', { position: 'relative', font: "500 14px/1.45 'DM Sans',sans-serif", color: '#3f3530', textWrap: 'pretty' }, text));
+    const upkeepBanner = s.tab !== 'upkeep' ? null : tabBanner('upkeep', 'Recurring jobs for the things you own. Tap Done and ' + N + ' resets the timer.');
+    const shopBanner = s.tab !== 'stock' ? null : tabBanner('stock', N + ' keeps the list. Tick what you bought; things at home join the list when they run low.');
+    const journeyBanner = s.tab !== 'journeys' ? null : tabBanner('journeys', 'Bigger plans with milestones, for ' + N + ' and ' + PN + ' to follow together.');
+    // The sky reaches the top of Today, with the greeting inside it.
+    const skyInk = night0 ? '#fffdf9' : INK, skyShadow = night0 ? '0 1px 6px rgba(0,0,0,.35)' : '0 1px 0 rgba(255,253,249,.5)';
+    const heroTopEl = s.tab !== 'today' ? null : E('div', { position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '0 18px 0 20px', paddingTop: framed ? 64 : 'calc(' + (framed ? '54px' : 'max(14px, env(safe-area-inset-top))') + ' + 14px)', background: sky.top, transition: 'background 2s', marginBottom: -2 },
+      E('div', { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, color: skyInk, textShadow: skyShadow },
+        E('span', { font: "500 14px 'DM Sans',sans-serif", opacity: .85 }, dayNames[now.getDay()] + ', ' + now.getDate() + ' ' + MON[now.getMonth()]),
+        E('span', { font: "600 clamp(22px,7vw,28px)/1.1 'Fredoka',sans-serif", letterSpacing: '-.01em', textWrap: 'balance' }, (hr < 5 ? 'Still up' : hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening') + ', ' + me.name)),
+      E('div', { display: 'flex', alignItems: 'center', gap: 6, paddingTop: 4, flex: 'none' },
+        ...s.profiles.map(p => h('button', { key: p.id, title: p.name, 'aria-label': 'Switch to ' + p.name, onClick: () => { this.setState({ active: p.id, editing: false }); try { localStorage.setItem(KEY + '-me', p.id); } catch (e) {} if (p.id !== s.active) this.toastMsg('Switched to ' + p.name); },
+          style: { width: 38, height: 38, borderRadius: 19, border: 'none', cursor: 'pointer', background: C[p.id], font: "600 15px 'Fredoka',sans-serif", color: INK, boxShadow: p.id === s.active ? '0 0 0 2.5px rgba(255,253,249,.9), 0 2px 8px rgba(0,0,0,.15)' : 'none', opacity: p.id === s.active ? 1 : .7 } }, (p.name || '?').trim()[0].toUpperCase())),
+        h('button', { title: 'Settings', 'aria-label': 'Settings', onClick: () => this.openSheet('settings', { n1: prof('p1').name, n2: prof('p2').name, anniv: s.anniv || '', exam: s.exam || '' }), style: { width: 38, height: 38, borderRadius: 19, border: 'none', background: 'rgba(255,253,249,.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: 0, boxShadow: '0 2px 8px rgba(0,0,0,.1)' } },
+          ...[0, 1, 2].map(i => h('span', { key: i, style: { width: 4, height: 4, borderRadius: 2, background: INK } })))));
+    // Evening: a warm glow over the app, and a short wind-down note once the day is done.
+    const glowEl = !night0 || s.uiGlow === false ? null : E('div', { position: 'absolute', inset: 0, zIndex: 21, pointerEvents: 'none', background: 'linear-gradient(180deg, rgba(60,40,90,.10), rgba(120,70,40,.10))', mixBlendMode: 'multiply' });
+    const doneToday0 = ((todayDone[s.active] || []).length), coinsToday0 = doneToday0 * 2 + ((((s.chal || {})[today] || {})[s.active] || []).length) * 3;
+    const windDownEl = s.tab !== 'today' || hr < 19 || !isToday ? null : E('div', { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 24, background: 'linear-gradient(135deg, oklch(0.36 0.07 280), oklch(0.46 0.08 300))', color: '#fffdf9' },
+      E('div', { position: 'relative', flex: 'none', width: 44, height: 44 }, D2({ left: 6, top: 4, width: 34, height: 34, borderRadius: '50%', background: 'oklch(0.94 0.07 90)', boxShadow: 'inset -10px -4px 0 0 oklch(0.36 0.07 280)' }), D2({ left: 34, top: 2, width: 4, height: 4, borderRadius: 2, background: '#fffdf9', animation: 'fidTwinkle 2s infinite' }), D2({ left: 2, top: 34, width: 3, height: 3, borderRadius: 2, background: '#fffdf9', animation: 'fidTwinkle 2.6s .5s infinite' })),
+      E('div', { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }, E('span', { font: "600 17px 'Fredoka',sans-serif" }, doneToday0 ? 'Well done today' : 'Time to wind down'),
+        E('span', { font: "400 13px/1.4 'DM Sans',sans-serif", opacity: .9 }, doneToday0 ? doneToday0 + (doneToday0 === 1 ? ' thing' : ' things') + ' ticked off and about ' + coinsToday0 + ' coins earned. ' + N + ' is proud of you. Sleep well.' : 'A calm evening counts too. Tomorrow is a fresh page for you and ' + N + '.')));
     // A quiet notice while the phone is offline: changes wait on the phone and go up when it's back.
     const offlineEl = !s.offline ? null : E('div', { position: 'absolute', left: '50%', top: framed ? 58 : 'max(10px, env(safe-area-inset-top))', transform: 'translateX(-50%)', zIndex: 66, display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', borderRadius: 16, background: 'rgba(42,35,32,.88)', color: '#fffdf9', font: "500 13px 'DM Sans',sans-serif", whiteSpace: 'nowrap', pointerEvents: 'none', animation: 'fadeIn .2s' },
       h('span', { style: { width: 8, height: 8, borderRadius: 4, background: 'oklch(0.75 0.15 70)' } }), 'Offline · your changes will sync later');
@@ -3831,7 +3875,7 @@ class Component extends DCLogic {
           h('div', { style: { width: 42, height: 42, borderRadius: 12, overflow: 'hidden', flex: 'none', boxShadow: '0 2px 6px rgba(42,35,32,.15)' } }, this.trackArt(Sound.i, 42, playing)),
           E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
             E('span', { font: "600 14px 'DM Sans',sans-serif", color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, trk[1]),
-            E('span', { display: 'flex', alignItems: 'center', gap: 6, font: "500 11.5px 'DM Sans',sans-serif", color: '#8a7e75', whiteSpace: 'nowrap' }, eq(playing), !musicOn ? 'Music is off · tap play' : Sound.hushed ? 'Paused while Dutch is read' : h('span', null, h('span', { 'data-fid-time': '' }, mmss2(curT)), ' / ' + trk[2])))),
+            E('span', { display: 'flex', alignItems: 'center', gap: 6, font: "500 11.5px 'DM Sans',sans-serif", color: '#7a6e66', whiteSpace: 'nowrap' }, eq(playing), !musicOn ? 'Music is off · tap play' : Sound.hushed ? 'Paused while Dutch is read' : h('span', null, h('span', { 'data-fid-time': '' }, mmss2(curT)), ' / ' + trk[2])))),
         h('button', { onClick: () => this.musicToggle(), 'aria-label': playing ? 'Pause music' : 'Play music', style: roundB(40, true) }, svgI(playing ? I_PAUSE : I_PLAY, 18)),
         h('button', { onClick: () => Sound.skip(), 'aria-label': 'Next song', style: roundB(36) }, svgI(I_NEXT, 18)),
         h('button', { onClick: () => this.setUi({ uiDisc: true }), 'aria-label': 'Fold the player away', style: { ...roundB(30), color: '#a89b90' } }, h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round', 'aria-hidden': true }, h('path', { d: 'M6 9l6 6 6-6' }))),
@@ -3846,15 +3890,15 @@ class Component extends DCLogic {
           h('div', { style: { position: 'absolute', right: 6, bottom: 2, animation: playing ? 'fidGroove 1.2s ease-in-out infinite' : 'none', transformOrigin: '50% 100%' } }, this.pig({ mood: playing ? 'joy' : 'ok', sex: myPig.sex, wear: s.wear, still: true, scale: .5 }))),
         E('div', { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' },
           E('span', { font: "600 22px/1.2 'Fredoka',sans-serif", color: INK }, trk[1]),
-          E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#8a7e75' }, 'Fidous radio · song ' + (Sound.i + 1) + ' of ' + TRACKS.length)),
+          E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Fidous radio · song ' + (Sound.i + 1) + ' of ' + TRACKS.length)),
         E('div', { display: 'flex', flexDirection: 'column', gap: 2 },
           h('input', { type: 'range', min: 0, max: 1000, defaultValue: Math.round(frac * 1000), 'data-fid-seek': '', 'aria-label': 'Song position', onPointerDown: () => { Sound.dragging = true; }, onPointerUp: () => { Sound.dragging = false; }, onChange: e => Sound.seek(+e.target.value / 1000), style: range }),
-          E('div', { display: 'flex', justifyContent: 'space-between', font: "500 12px 'DM Sans',sans-serif", color: '#8a7e75' }, h('span', { 'data-fid-time': '' }, mmss2(curT)), h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : trk[2]))),
+          E('div', { display: 'flex', justifyContent: 'space-between', font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, h('span', { 'data-fid-time': '' }, mmss2(curT)), h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : trk[2]))),
         E('div', { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22 },
           h('button', { onClick: () => Sound.prev(), 'aria-label': 'Previous song', style: roundB(48) }, svgI(I_PREV, 26)),
           h('button', { onClick: () => this.musicToggle(), 'aria-label': playing ? 'Pause music' : 'Play music', style: { ...roundB(68, true), boxShadow: '0 8px 18px rgba(42,35,32,.25)' } }, svgI(playing ? I_PAUSE : I_PLAY, 30)),
           h('button', { onClick: () => Sound.skip(), 'aria-label': 'Next song', style: roundB(48) }, svgI(I_NEXT, 26))),
-        E('div', { display: 'flex', alignItems: 'center', gap: 10, color: '#8a7e75' },
+        E('div', { display: 'flex', alignItems: 'center', gap: 10, color: '#7a6e66' },
           svgI('M4 9v6h4l5 4V5L8 9H4z', 18), h('input', { type: 'range', min: 0, max: 100, defaultValue: Math.round(Sound.vol * 100), 'aria-label': 'Volume', onChange: e => Sound.setVol(+e.target.value / 100), style: range }), svgI('M4 9v6h4l5 4V5L8 9H4zm11.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM13 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z', 20)),
         E('div', { display: 'flex', flexDirection: 'column', gap: 4, background: '#f6f1ea', borderRadius: 20, padding: 6 },
           ...TRACKS.map(([, name, len], i) => { const cur = i === Sound.i;
@@ -3890,10 +3934,10 @@ class Component extends DCLogic {
                 E('div', { padding: '12px 16px 14px', display: 'flex', flexDirection: 'column', gap: 3 },
                   E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }, E('span', { font: "600 21px 'Fredoka',sans-serif", color: INK }, x.title),
                     dn ? E('span', { flex: 'none', font: "600 12px 'DM Sans',sans-serif", padding: '4px 9px', borderRadius: 9, background: C.greenSoft, color: C.greenInk }, 'Read · ' + (dn.best || 0) + '/3') : E('span', { flex: 'none', font: "600 12px 'DM Sans',sans-serif", padding: '4px 9px', borderRadius: 9, background: 'oklch(0.94 0.06 85)', color: 'oklch(0.44 0.1 60)' }, '+' + STORY_COINS + ' coins')),
-                  E('span', { font: "400 14px 'DM Sans',sans-serif", color: '#7a6e66' }, x.en + ' · ' + x.scenes.length + ' scenes · A1')));
+                  E('span', { font: "400 14px 'DM Sans',sans-serif", color: '#695d55' }, x.en + ' · ' + x.scenes.length + ' scenes · A1')));
             }),
             h('button', { onClick: () => this.setState({ story: { ...st, auto: !st.auto } }), 'aria-pressed': !!st.auto, style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', borderRadius: 18, border: 'none', background: 'rgba(255,253,249,.8)', cursor: 'pointer', textAlign: 'left', flex: 'none' } },
-              E('span', { display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, 'Read aloud on every page'), E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Hear each sentence as you turn the page')),
+              E('span', { display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 15px 'DM Sans',sans-serif" }, 'Read aloud on every page'), E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#695d55' }, 'Hear each sentence as you turn the page')),
               E('span', { flex: 'none', width: 46, height: 28, borderRadius: 14, background: st.auto ? C.green : '#d9cec2', position: 'relative', transition: 'background .2s' }, E('span', { position: 'absolute', top: 3, left: st.auto ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fffdf9', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s' }))),
             E('span', { ...mutedS, textAlign: 'center', padding: '0 10px' }, 'Every story ends with a speaking question and three reading questions, like the A1 exam. Tap any coloured word to hear it.')));
       } else {
@@ -3922,10 +3966,10 @@ class Component extends DCLogic {
             h('div', { key: 'sc' + st.i, style: { position: 'absolute', inset: 0, animation: 'fidSceneIn .45s ease-out', '--sx': (st.dir < 0 ? -28 : 28) + 'px' } }, stageBox(S, sc, SW, artH, 'st' + S.id + st.i, .78)));
           panel = E('div', panelS,
             E('div', { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 },
-              E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, kicker(sc.say ? who(sc.say) + ' zegt' : 'Verhaal'), E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#8a7e75' }, (st.i + 1) + ' / ' + n)),
+              E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, kicker(sc.say ? who(sc.say) + ' zegt' : 'Verhaal'), E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, (st.i + 1) + ' / ' + n)),
               h('div', { key: 't' + S.id + st.i, style: { font: "600 23px/1.32 'Fredoka',sans-serif", color: INK, textWrap: 'pretty', animation: 'fidIn .35s ease-out' } }, ...parts),
-              st.en ? E('span', { font: "italic 400 15px/1.45 'DM Sans',sans-serif", color: '#7a6e66', animation: 'fadeIn .2s' }, this.storyText(sc.en)) : null,
-              E('div', { display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 2 }, ...words.map(([nl, en], wi) => h('button', { key: S.id + st.i + wi, onClick: () => pickW(wi), style: { display: 'flex', gap: 5, alignItems: 'baseline', padding: '7px 11px', borderRadius: 12, border: 'none', cursor: 'pointer', background: st.w === wi ? `oklch(0.9 0.07 ${hueOf})` : `oklch(0.965 0.02 ${hueOf})`, font: "600 13px 'DM Sans',sans-serif", color: INK, transition: 'background .2s' } }, nl, E('span', { fontWeight: 400, color: '#7a6e66' }, en))))),
+              st.en ? E('span', { font: "italic 400 15px/1.45 'DM Sans',sans-serif", color: '#695d55', animation: 'fadeIn .2s' }, this.storyText(sc.en)) : null,
+              E('div', { display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 2 }, ...words.map(([nl, en], wi) => h('button', { key: S.id + st.i + wi, onClick: () => pickW(wi), style: { display: 'flex', gap: 5, alignItems: 'baseline', padding: '7px 11px', borderRadius: 12, border: 'none', cursor: 'pointer', background: st.w === wi ? `oklch(0.9 0.07 ${hueOf})` : `oklch(0.965 0.02 ${hueOf})`, font: "600 13px 'DM Sans',sans-serif", color: INK, transition: 'background .2s' } }, nl, E('span', { fontWeight: 400, color: '#695d55' }, en))))),
             E('div', { display: 'flex', gap: 8, alignItems: 'center' },
               h('button', { 'aria-label': 'Previous page', disabled: st.i === 0, onClick: () => this.storyGo(-1), style: { ...pill(false), width: 48, padding: 0, justifyContent: 'center', font: "500 26px/1 'DM Sans',sans-serif", opacity: st.i ? 1 : .35, cursor: st.i ? 'pointer' : 'default' } }, '‹'),
               h('button', { 'aria-label': 'Listen', onClick: () => this.speak(txt), style: pill(false) }, ear, 'Listen'),
@@ -3940,10 +3984,10 @@ class Component extends DCLogic {
               E('div', { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 },
                 kicker('Jouw beurt · Your turn'),
                 E('span', { font: "600 23px/1.3 'Fredoka',sans-serif", color: INK, textWrap: 'pretty' }, this.storyText(sp.nl)),
-                E('span', { font: "italic 400 15px/1.45 'DM Sans',sans-serif", color: '#7a6e66' }, this.storyText(sp.en)),
+                E('span', { font: "italic 400 15px/1.45 'DM Sans',sans-serif", color: '#695d55' }, this.storyText(sp.en)),
                 E('span', { font: "400 14px/1.5 'DM Sans',sans-serif", color: '#4a3f38', textWrap: 'pretty' }, 'Answer out loud in Dutch, in one or two short sentences. That is how the speaking part of the A1 exam works.'),
                 st.ex ? E('div', { display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 18, background: `oklch(0.95 0.035 ${hueOf})`, animation: 'fidIn .3s ease-out' },
-                  E('div', { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 18px/1.3 'Fredoka',sans-serif", color: INK }, sp.example), E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#7a6e66' }, sp.exampleEn)),
+                  E('div', { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 18px/1.3 'Fredoka',sans-serif", color: INK }, sp.example), E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#695d55' }, sp.exampleEn)),
                   h('button', { 'aria-label': 'Listen to the example', onClick: () => this.speak(sp.example), style: { ...glass, background: '#fffdf9' } }, ear)) : null),
               E('div', { display: 'flex', gap: 8 },
                 h('button', { 'aria-label': 'Listen', onClick: () => this.speak(this.storyText(sp.nl)), style: pill(false) }, ear, 'Listen'),
@@ -3954,8 +3998,8 @@ class Component extends DCLogic {
             const ord = q.options.map((_, i) => i).sort((a, b) => hash(S.id + st.q + a) - hash(S.id + st.q + b));
             panel = E('div', panelS,
               E('div', { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 },
-                E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, kicker('Vraag ' + (st.q + 1) + ' van ' + S.quiz.length), E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#8a7e75' }, st.right + ' right')),
-                h('div', { key: 'q' + st.q, style: { display: 'flex', flexDirection: 'column', gap: 4, animation: 'fidIn .3s ease-out' } }, E('span', { font: "600 22px/1.3 'Fredoka',sans-serif", color: INK }, this.storyText(q.q)), E('span', { font: "italic 400 14px 'DM Sans',sans-serif", color: '#7a6e66' }, this.storyText(q.en))),
+                E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, kicker('Vraag ' + (st.q + 1) + ' van ' + S.quiz.length), E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, st.right + ' right')),
+                h('div', { key: 'q' + st.q, style: { display: 'flex', flexDirection: 'column', gap: 4, animation: 'fidIn .3s ease-out' } }, E('span', { font: "600 22px/1.3 'Fredoka',sans-serif", color: INK }, this.storyText(q.q)), E('span', { font: "italic 400 14px 'DM Sans',sans-serif", color: '#695d55' }, this.storyText(q.en))),
                 ...ord.map(i => { const picked = st.pick === i, good = i === q.a, show = st.pick != null;
                   return h('button', { key: 'o' + st.q + i, onClick: () => this.storyAnswer(i), disabled: show, style: { minHeight: 52, padding: '10px 16px', borderRadius: 16, textAlign: 'left', cursor: show ? 'default' : 'pointer', font: "600 16px 'DM Sans',sans-serif", color: INK, transition: 'all .2s',
                     border: show && (good || picked) ? 'none' : '1px solid #e3d9cd', background: show && good ? C.greenSoft : show && picked ? 'oklch(0.93 0.05 25)' : '#fffdf9', opacity: show && !good && !picked ? .55 : 1 } }, this.storyText(q.options[i]) + (show && good ? '  ✓' : ''));
@@ -3971,7 +4015,7 @@ class Component extends DCLogic {
                 E('span', { font: "400 15px/1.45 'DM Sans',sans-serif", color: '#5e534c' }, 'You read “' + S.title + '” and got ' + st.right + ' of ' + S.quiz.length + ' questions right.'),
                 E('span', { font: "600 15px 'DM Sans',sans-serif", color: 'oklch(0.44 0.1 60)' }, st.first ? '+' + STORY_COINS + ' coins · +2 Smart' : '+1 Smart'),
                 E('div', { display: 'flex', flexDirection: 'column', gap: 6, width: '100%', alignItems: 'flex-start', textAlign: 'left', paddingTop: 4 }, kicker(all.length + ' words from this story'),
-                  E('div', { display: 'flex', flexWrap: 'wrap', gap: 6 }, ...all.map(([nl, en], i) => h('button', { key: 'aw' + i, onClick: () => this.speak(nl), style: { display: 'flex', gap: 5, alignItems: 'baseline', padding: '6px 10px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `oklch(0.965 0.02 ${hueOf})`, font: "600 13px 'DM Sans',sans-serif", color: INK } }, nl, E('span', { fontWeight: 400, color: '#7a6e66' }, en)))))),
+                  E('div', { display: 'flex', flexWrap: 'wrap', gap: 6 }, ...all.map(([nl, en], i) => h('button', { key: 'aw' + i, onClick: () => this.speak(nl), style: { display: 'flex', gap: 5, alignItems: 'baseline', padding: '6px 10px', borderRadius: 12, border: 'none', cursor: 'pointer', background: `oklch(0.965 0.02 ${hueOf})`, font: "600 13px 'DM Sans',sans-serif", color: INK } }, nl, E('span', { fontWeight: 400, color: '#695d55' }, en)))))),
               E('div', { display: 'flex', gap: 8 },
                 h('button', { onClick: () => this.storyOpen(S.id), style: { ...pill(false), justifyContent: 'center' } }, 'Read again'),
                 h('button', { onClick: () => this.storyOpen(nextS.id), style: btnS(true, { flex: 1, height: 48, borderRadius: 16, font: "600 15px 'DM Sans',sans-serif" }) }, 'Next: ' + nextS.title + ' ›')));
@@ -3992,7 +4036,7 @@ class Component extends DCLogic {
       const wk = this.weekStart(today), pool = WEEKEND.filter(i => inSeason(i, today) && !(trips[i.id] || {}).went);
       const both = pool.filter(i => ((trips[i.id] || {}).want || []).length === 2), rest = [...pool].sort((a, b) => hashStr(wk + a.id) - hashStr(wk + b.id));
       const picks = [...new Set([...both, ...rest])].slice(0, 3);
-      weekendEl = E('div', { ...cardS, background: 'oklch(0.95 0.04 150)', gap: 4 },
+      weekendEl = E('div', { ...cardS, background: '#fffdf9', gap: 4 },
         E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 6 }, E('span', titleS, 'This weekend, together'), h('button', { onClick: () => this.openSheet('weekend', { wkCat: 'all' }), style: { border: 'none', background: 'none', padding: 0, cursor: 'pointer', font: "600 13px 'DM Sans',sans-serif", color: 'oklch(0.4 0.09 150)' } }, 'All ' + WEEKEND.length + ' ideas ›')),
         ...picks.map(i => E('div', { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid rgba(42,35,32,.07)' },
           E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
@@ -4017,7 +4061,7 @@ class Component extends DCLogic {
         !list.length ? E('span', mutedS, cat === 'saved' ? 'Nothing saved yet. Tap “Want to go” on anything that sounds fun.' : 'Nothing here right now.') : null,
         ...list.map(i => { const tr = trips[i.id] || {};
           return E('div', { display: 'flex', flexDirection: 'column', gap: 8, padding: 14, borderRadius: 18, background: tr.went ? 'oklch(0.96 0.03 150)' : '#f9f5ef' },
-            E('div', { display: 'flex', alignItems: 'flex-start', gap: 8 }, E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 16px/1.25 'DM Sans',sans-serif" }, i.name), E('span', { font: "500 12.5px 'DM Sans',sans-serif", color: '#7a6e66' }, i.where + ' · ' + monthsText(i.months))), costChip(i.cost)),
+            E('div', { display: 'flex', alignItems: 'flex-start', gap: 8 }, E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 16px/1.25 'DM Sans',sans-serif" }, i.name), E('span', { font: "500 12.5px 'DM Sans',sans-serif", color: '#695d55' }, i.where + ' · ' + monthsText(i.months))), costChip(i.cost)),
             E('span', { font: "400 14px/1.45 'DM Sans',sans-serif", color: '#4a3f38', textWrap: 'pretty' }, i.what),
             E('div', { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }, wantBtn(i.id), whoChips(i.id),
               h('button', { onClick: () => this.tripWent(i.id), style: { height: 36, padding: '0 12px', borderRadius: 18, border: tr.went ? 'none' : '1px solid #e3d9cd', background: tr.went ? C.greenSoft : '#fffdf9', color: tr.went ? C.greenInk : INK, font: "600 13px 'DM Sans',sans-serif", cursor: 'pointer' } }, tr.went ? 'Went ' + fmt(tr.went) : 'We went!'),
@@ -4049,7 +4093,7 @@ class Component extends DCLogic {
       outerStyle: framed ? { minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 16px', boxSizing: 'border-box' } : { minHeight: '100vh' },
       phoneStyle: framed ? { width: 410, height: 864, borderRadius: 58, background: '#16130f', padding: 10, boxSizing: 'border-box', boxShadow: '0 30px 80px rgba(60,40,30,.28), inset 0 0 0 2px #2c2824', flex: 'none' } : { width: '100%', height: '100dvh' },
       screenBg: SCREEN_BG[sky.name] || '#f6f1ea',
-      screenStyle: { '--sheetPad': framed ? '34px' : 'max(34px, calc(env(safe-area-inset-bottom) + 18px))', '--tabPad': framed ? '18px' : 'max(14px, env(safe-area-inset-bottom))', '--tabH': framed ? '84px' : 'calc(66px + max(14px, env(safe-area-inset-bottom)))', position: 'relative', overflow: 'hidden', background: SCREEN_BG[sky.name] || '#f6f1ea', transition: 'background 2s', ...(framed ? { width: 390, height: 844, borderRadius: 48 } : { width: '100%', height: '100%' }) },
+      screenStyle: { ...(T => ({ '--acc': T.acc, '--accSoft': T.soft, '--accSoft2': T.soft2, '--accInk': T.ink, '--accPanel': T.panel, '--accDot': T.dot }))(THEMES[myPig.sex] || THEMES.f), '--sheetPad': framed ? '34px' : 'max(34px, calc(env(safe-area-inset-bottom) + 18px))', '--tabPad': framed ? '18px' : 'max(14px, env(safe-area-inset-bottom))', '--tabH': framed ? '84px' : 'calc(66px + max(14px, env(safe-area-inset-bottom)))', position: 'relative', overflow: 'hidden', background: SCREEN_BG[sky.name] || '#f6f1ea', transition: 'background 2s', ...(framed ? { width: 390, height: 844, borderRadius: 48 } : { width: '100%', height: '100%' }) },
       topPad: framed ? '54px' : 'max(14px, env(safe-area-inset-top))',
       renamePig: () => this.openSheet('pigname', { pname: N, psex: myPig.sex }),
       pigKicker: me.name + '’s ' + (myPig.sex === 'f' ? 'strawberry piggy' : 'banana duck'), pigName: N,
@@ -4058,8 +4102,8 @@ class Component extends DCLogic {
       decoEl, togetherEl, visitBanner, profileEl, celeb, hasCeleb: !!(cA || cF),
       tabToday: s.tab === 'today', tabFidous: s.tab === 'fidous', tabUpkeep: s.tab === 'upkeep', tabStock: s.tab === 'stock', tabJourneys: s.tab === 'journeys',
       me, todayLabel: dayNames[now.getDay()] + ', ' + now.getDate() + ' ' + MON[now.getMonth()],
-      heroEl, chartEl, learnEl, ideasEl, nameEl, homeCardEl, eventEl, weekEl, weekendEl, weekendEntryEl, weekendListEl, storyEl, playerEl, musicEl, sheetMusic: s.sheet === 'music', playerPad: !playerEl ? '0px' : (s.uiDisc ?? simpleToday) ? '64px' : '76px', toastBottom: playerEl && !(s.uiDisc ?? simpleToday) ? 'calc(var(--tabH) + 82px)' : 'calc(var(--tabH) + 16px)', offlineEl, fullToday, moreTodayEl, dayRowStyle: { display: fullToday ? 'flex' : 'none', alignItems: 'center', gap: 8, scrollMarginTop: 12 }, sheetWeekend: s.sheet === 'weekend', chal, dayRef: this.dayRef,
-      heroCardStyle: { background: 'oklch(0.935 0.035 10)', borderRadius: 30, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' },
+      heroEl, chartEl, learnEl, ideasEl, nameEl, homeCardEl, eventEl, weekEl, weekendEl, weekendEntryEl, weekendListEl, storyEl, playerEl, musicEl, sheetMusic: s.sheet === 'music', playerPad: !playerEl ? '0px' : (s.uiDisc ?? simpleToday) ? '64px' : '76px', toastBottom: playerEl && !(s.uiDisc ?? simpleToday) ? 'calc(var(--tabH) + 82px)' : 'calc(var(--tabH) + 16px)', offlineEl, upkeepBanner, shopBanner, journeyBanner, heroTopEl, glowEl, windDownEl, fullToday, moreTodayEl, dayRowStyle: { display: fullToday ? 'flex' : 'none', alignItems: 'center', gap: 8, scrollMarginTop: 12 }, sheetWeekend: s.sheet === 'weekend', chal, dayRef: this.dayRef,
+      classicHeader: false, heroCardStyle: { background: 'radial-gradient(circle, var(--accDot) 0 1.6px, transparent 2.2px) 0 0/18px 18px, var(--accPanel)', borderRadius: '0 0 32px 32px', margin: '0 -20px', marginTop: 'calc(-10px - ' + (framed ? '54px' : 'max(14px, env(safe-area-inset-top))') + ')', boxShadow: '0 10px 30px -18px rgba(60,40,30,.35)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' },
       dayTitle: isToday ? 'Today' : diff === 1 ? 'Yesterday' : dayNames[vd.getDay()],
       daySub: isToday ? dayNames[vd.getDay()] + ' ' + vd.getDate() + ' ' + MON[vd.getMonth()] + ' · your tasks' : fmt(vk) + ' · you can still tick things off',
       dayPrev: () => this.setState({ viewDay: addDays(vk, -1), editing: false }),
@@ -4096,14 +4140,14 @@ class Component extends DCLogic {
       pigEl, moodText, advLine, energy,
       goFidous: () => { if (isBack) this.collectAdv(); else this.setState({ tab: 'fidous' }); },
       coinsTotal: s.testMode ? '∞' : bal, toyBtns, hasToys: toyBtns.length > 0,
-      toggleTest: () => this.setState(st => ({ testMode: !st.testMode })), toggleAdv: () => this.setState({ advOpen: !s.advOpen }), advOpen: !!s.advOpen, advChevron: { font: "600 16px 'DM Sans',sans-serif", color: '#8a7e75', transform: s.advOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' },
+      toggleTest: () => this.setState(st => ({ testMode: !st.testMode })), toggleAdv: () => this.setState({ advOpen: !s.advOpen }), advOpen: !!s.advOpen, advChevron: { font: "600 16px 'DM Sans',sans-serif", color: '#7a6e66', transform: s.advOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' },
       testTrack: { flex: 'none', width: 46, height: 28, borderRadius: 14, background: s.testMode ? C.green : '#d9cec2', position: 'relative', transition: 'background .2s' },
       testKnob: { position: 'absolute', top: 3, left: s.testMode ? 21 : 3, width: 22, height: 22, borderRadius: 11, background: '#fffdf9', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s' },
       upFilterOpts: [['all', 'All'], ...s.profiles.map(p => [p.id, p.name]), ['both', 'Shared']].map(([k, label]) => ({ label, pick: () => this.setState({ upFilter: k }), style: segStyle(upF === k) })),
       upEmpty: upShown.length ? '' : upF === 'both' ? 'No shared jobs yet. Tap + Add to create one.' : upF === 'all' ? 'No upkeep jobs yet.' : 'Nothing on ' + prof(upF).name + '’s list yet. Tap + Add to create one.',
       daysLabel: daysText(f.days), taskSheetNote: f.id ? 'Changes ' + me.name + '’s task.' : 'Adds to ' + me.name + '’s list.',
       dayOpts: [1, 2, 3, 4, 5, 6, 0].map(dd => { const on = !f.days || f.days.includes(dd); return { label: DAYS[dd], pick: () => { const cur = f.days || [0, 1, 2, 3, 4, 5, 6]; this.setF('days', on ? cur.filter(x => x !== dd) : [...cur, dd]); },
-        style: { height: 38, borderRadius: 12, border: 'none', cursor: 'pointer', font: "600 14px 'DM Sans',sans-serif", background: on ? INK : '#f3ede5', color: on ? '#fffdf9' : '#7a6e66' } }; }),
+        style: { height: 38, borderRadius: 12, border: 'none', cursor: 'pointer', font: "600 14px 'DM Sans',sans-serif", background: on ? INK : '#f3ede5', color: on ? '#fffdf9' : '#695d55' } }; }),
       dayPresets: [['Every day', [0, 1, 2, 3, 4, 5, 6]], ['Weekdays', [1, 2, 3, 4, 5]], ['Weekends', [0, 6]]].map(([label, v]) => ({ label, pick: () => this.setF('days', v) })),
       profileProgress: ratios.map(r => ({ name: r.p.name, label: r.d + '/' + r.n,
         cheerEl: r.p.id === s.active ? h('span', null) : h('button', { onClick: () => this.cheer(r.p.id), 'aria-label': 'Send ' + r.p.name + ' a heart (' + this.heartsLeft() + ' left today)', title: this.heartsLeft() ? this.heartsLeft() + ' hearts left today' : 'No hearts left today', style: { width: 34, height: 30, borderRadius: 15, border: 'none', background: 'rgba(255,253,249,.85)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, opacity: this.heartsLeft() ? 1 : .35 } },
@@ -4141,9 +4185,9 @@ class Component extends DCLogic {
       addApp: () => { const c = (f.company || '').trim(); if (!c) { this.toastMsg('Add a company name'); return; } this.updJ(s.journey, j => ({ ...j, apps: [{ id: uid(), company: c, role: (f.role || '').trim() || 'Role', stage: 'Applied' }, ...(j.apps || [])] })); this.setState(st => ({ f: { ...st.f, company: '', role: '' }, ...this.award(st, 2) })); this.toastMsg('Application logged · +2 coins'); },
       tabs: tabsDef.map(([k, label, badge]) => ({ label, badge: badge || '', go: () => this.setState({ tab: k, journey: null, editing: false }),
         current: s.tab === k ? 'page' : undefined,
-        icon: h('span', { style: { width: 46, height: 28, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.tab === k ? 'oklch(0.93 0.045 15)' : 'transparent', color: s.tab === k ? INK : '#a89b90', transition: 'background .25s, color .25s' } },
-          h('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }, h('path', { d: TAB_ICONS[k] }))),
-        labelStyle: { font: (s.tab === k ? 600 : 500) + " 12px 'DM Sans',sans-serif", color: s.tab === k ? INK : '#8a7e75', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+        icon: h('span', { style: { width: 46, height: 28, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.tab === k ? 'var(--accSoft2)' : 'transparent', color: s.tab === k ? INK : '#a89b90', transition: 'background .25s, color .25s' } },
+          h('svg', { width: 23, height: 23, viewBox: '0 0 24 24', fill: s.tab === k ? 'var(--acc)' : 'none', fillOpacity: s.tab === k ? .35 : 0, stroke: 'currentColor', strokeWidth: 2.3, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }, h('path', { d: TAB_ICONS[k] }))),
+        labelStyle: { font: (s.tab === k ? 600 : 500) + " 12px 'DM Sans',sans-serif", color: s.tab === k ? INK : '#7a6e66', maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
         badgeStyle: badge ? { position: 'absolute', top: 4, left: '50%', marginLeft: 12, minWidth: 18, height: 18, borderRadius: 9, background: C.red, color: '#fff', font: "600 11px/18px 'DM Sans',sans-serif", textAlign: 'center', padding: '0 4px', boxSizing: 'border-box' } : { display: 'none' } })),
       hasSheet: !!s.sheet, sheetTitle: titles[s.sheet] || '',
       sheetTask: s.sheet === 'task', sheetUpkeep: s.sheet === 'upkeep', sheetStock: s.sheet === 'stock', sheetJourney: s.sheet === 'journey', sheetSettings: s.sheet === 'settings', sheetPostcard: s.sheet === 'postcard' && !!pcA,
@@ -4246,9 +4290,10 @@ input,button,select{font-family:inherit;color:inherit}
 
 <sc-if value="{{ tabToday }}" hint-placeholder-val="{{ true }}">
 <div style="padding:10px 20px 32px;display:flex;flex-direction:column;gap:18px;animation:fadeIn .25s">
+  <sc-if value="{{ classicHeader }}" hint-placeholder-val="{{ false }}">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
     <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-      <div style="font:500 14px 'DM Sans',sans-serif;color:#7a6e66">{{ todayLabel }}</div>
+      <div style="font:500 14px 'DM Sans',sans-serif;color:#695d55">{{ todayLabel }}</div>
       <div style="font:600 clamp(22px,7.2vw,28px)/1.1 'Fredoka',sans-serif;letter-spacing:-.01em;text-wrap:balance">{{ greeting }}, {{ me.name }}</div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;padding-top:4px">
@@ -4260,8 +4305,10 @@ input,button,select{font-family:inherit;color:inherit}
       </button>
     </div>
   </div>
+  </sc-if>
 
   <div style="{{ heroCardStyle }}">
+    {{ heroTopEl }}
     {{ heroEl }}
     <div style="padding:14px 20px 20px;display:flex;flex-direction:column;align-items:center;gap:4px">
     <div style="font:500 16px 'DM Sans',sans-serif;text-align:center;text-wrap:pretty;max-width:290px">{{ moodText }}</div>
@@ -4277,11 +4324,12 @@ input,button,select{font-family:inherit;color:inherit}
     </div>
     <button onClick="{{ goFidous }}" style="align-self:stretch;margin-top:12px;display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 14px;border-radius:16px;border:none;background:rgba(255,253,249,.8);cursor:pointer;text-align:left">
       <span style="flex:1;font:500 14px/1.35 'DM Sans',sans-serif">{{ advLine }}</span>
-      <span style="font:600 18px 'DM Sans',sans-serif;color:#7a6e66">›</span>
+      <span style="font:600 18px 'DM Sans',sans-serif;color:#695d55">›</span>
     </button>
     </div>
   </div>
 
+  {{ windDownEl }}
   <sc-if value="{{ fullToday }}" hint-placeholder-val="{{ true }}">
   {{ eventEl }}
   {{ homeCardEl }}
@@ -4291,7 +4339,7 @@ input,button,select{font-family:inherit;color:inherit}
     <button onClick="{{ dayPrev }}" aria-label="Previous day" style="width:44px;height:44px;flex:none;border-radius:22px;border:1px solid #e3d9cd;background:#fffdf9;font:600 20px 'DM Sans',sans-serif;cursor:pointer">‹</button>
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0">
       <span style="font:600 17px 'Fredoka',sans-serif">{{ dayTitle }}</span>
-      <span style="font:500 12px 'DM Sans',sans-serif;color:#7a6e66">{{ daySub }}</span>
+      <span style="font:500 12px 'DM Sans',sans-serif;color:#695d55">{{ daySub }}</span>
     </div>
     <button onClick="{{ dayNext }}" aria-label="Next day" style="{{ dayNextStyle }}">›</button>
   </div>
@@ -4314,7 +4362,7 @@ input,button,select{font-family:inherit;color:inherit}
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 4px">
         <div style="display:flex;align-items:center;gap:8px"><span style="font:600 17px 'Fredoka',sans-serif">{{ slot.label }}</span><span style="{{ slot.nowStyle }}">Now</span></div>
-        <div style="font:500 13px 'DM Sans',sans-serif;color:#7a6e66">{{ slot.count }}</div>
+        <div style="font:500 13px 'DM Sans',sans-serif;color:#695d55">{{ slot.count }}</div>
       </div>
       <sc-if value="{{ slot.collapsed }}" hint-placeholder-val="{{ false }}">
         <button onClick="{{ slot.expand }}" style="display:flex;align-items:center;gap:12px;min-height:50px;padding:0 16px;border-radius:22px;border:none;background:oklch(0.95 0.04 150);cursor:pointer;text-align:left">
@@ -4337,7 +4385,7 @@ input,button,select{font-family:inherit;color:inherit}
           </div>
         </sc-for>
         <sc-if value="{{ slot.empty }}" hint-placeholder-val="{{ false }}">
-          <div style="padding:16px 12px;font:400 14px 'DM Sans',sans-serif;color:#7a6e66">{{ slot.emptyText }}</div>
+          <div style="padding:16px 12px;font:400 14px 'DM Sans',sans-serif;color:#695d55">{{ slot.emptyText }}</div>
         </sc-if>
       </div>
       </sc-if>
@@ -4345,7 +4393,7 @@ input,button,select{font-family:inherit;color:inherit}
   </sc-for>
 
   <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
-    <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#7a6e66;padding:0 4px;margin-top:-6px;text-wrap:pretty">Editing: tap a task to rename it, move it or pick its days. Tasks for other days are shown faded.</div>
+    <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#695d55;padding:0 4px;margin-top:-6px;text-wrap:pretty">Editing: tap a task to rename it, move it or pick its days. Tasks for other days are shown faded.</div>
   </sc-if>
   <div style="display:flex;gap:10px">
     <button onClick="{{ openAddTask }}" style="flex:1;height:52px;border-radius:18px;border:none;background:#2a2320;color:#fffdf9;font:600 16px 'DM Sans',sans-serif;cursor:pointer">+ Add a daily task</button>
@@ -4355,7 +4403,7 @@ input,button,select{font-family:inherit;color:inherit}
   <div style="background:#fffdf9;border-radius:26px;padding:16px 16px 12px;display:flex;flex-direction:column;gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
       <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-        <span style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:oklch(0.5 0.12 300)">{{ chal.kicker }}</span>
+        <span style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accInk)">{{ chal.kicker }}</span>
         <span style="font:600 19px/1.2 'Fredoka',sans-serif">{{ chal.title }}</span>
       </div>
       <span style="{{ chal.chipStyle }}">{{ chal.chip }}</span>
@@ -4366,7 +4414,7 @@ input,button,select{font-family:inherit;color:inherit}
           <span style="{{ c.checkStyle }}"><span style="{{ c.tickStyle }}"></span></span>
           <span style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
             <span style="{{ c.textStyle }}">{{ c.name }}</span>
-            <span style="font:400 13px/1.35 'DM Sans',sans-serif;color:#8a7e75;text-wrap:pretty">{{ c.hint }}</span>
+            <span style="font:400 13px/1.35 'DM Sans',sans-serif;color:#7a6e66;text-wrap:pretty">{{ c.hint }}</span>
           </span>
           <span style="{{ c.tagStyle }}">{{ c.tag }}</span>
         </button>
@@ -4393,8 +4441,8 @@ input,button,select{font-family:inherit;color:inherit}
 <div style="padding:10px 20px 32px;display:flex;flex-direction:column;gap:16px;animation:fadeIn .25s">
   <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
     <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-      <div style="font:500 14px 'DM Sans',sans-serif;color:#7a6e66">{{ pigKicker }}</div>
-      <button onClick="{{ renamePig }}" title="Rename" style="border:none;background:none;padding:0;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;color:#2a2320"><span style="font:600 28px/1.1 'Fredoka',sans-serif">{{ pigName }}</span><span style="font:600 12px 'DM Sans',sans-serif;padding:4px 9px;border-radius:10px;background:#fffdf9;color:#7a6e66">Rename</span></button>
+      <div style="font:500 14px 'DM Sans',sans-serif;color:#695d55">{{ pigKicker }}</div>
+      <button onClick="{{ renamePig }}" title="Rename" style="border:none;background:none;padding:0;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;color:#2a2320"><span style="font:600 28px/1.1 'Fredoka',sans-serif">{{ pigName }}</span><span style="font:600 12px 'DM Sans',sans-serif;padding:4px 9px;border-radius:10px;background:#fffdf9;color:#695d55">Rename</span></button>
     </div>
     <div style="display:flex;gap:6px">
       <div style="font:600 13px 'DM Sans',sans-serif;background:#fffdf9;border-radius:20px;padding:7px 11px;display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:5px;background:oklch(0.8 0.12 85);box-shadow:inset 0 0 0 2px oklch(0.68 0.12 75)"></span>{{ coinsTotal }}</div>
@@ -4418,7 +4466,7 @@ input,button,select{font-family:inherit;color:inherit}
       <sc-for list="{{ sceneBtns }}" as="b" hint-placeholder-count="3">
         <button onClick="{{ b.go }}" style="flex:1;min-width:0;height:54px;border-radius:16px;border:1px solid #e3d9cd;background:#fffdf9;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 4px">
           <span style="font:600 15px 'DM Sans',sans-serif">{{ b.label }}</span>
-          <span style="font:500 11px 'DM Sans',sans-serif;color:#7a6e66">{{ b.sub }}</span>
+          <span style="font:500 11px 'DM Sans',sans-serif;color:#695d55">{{ b.sub }}</span>
         </button>
       </sc-for>
     </div>
@@ -4427,12 +4475,12 @@ input,button,select{font-family:inherit;color:inherit}
         <sc-for list="{{ toyBtns }}" as="b" hint-placeholder-count="3">
           <button onClick="{{ b.go }}" style="{{ b.style }}">
             <span style="width:40px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none">{{ b.icon }}</span>
-            <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px"><span style="font:600 14px 'DM Sans',sans-serif;white-space:nowrap">{{ b.label }}</span><span style="font:500 11px 'DM Sans',sans-serif;color:#7a6e66;white-space:nowrap">{{ b.sub }}</span></span>
+            <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px"><span style="font:600 14px 'DM Sans',sans-serif;white-space:nowrap">{{ b.label }}</span><span style="font:500 11px 'DM Sans',sans-serif;color:#695d55;white-space:nowrap">{{ b.sub }}</span></span>
           </button>
         </sc-for>
       </div>
     </sc-if>
-    <div style="font:400 13px/1.4 'DM Sans',sans-serif;color:#7a6e66;text-align:center;text-wrap:pretty">{{ gameNote }}</div>
+    <div style="font:400 13px/1.4 'DM Sans',sans-serif;color:#695d55;text-align:center;text-wrap:pretty">{{ gameNote }}</div>
     </sc-if>
   </div>
 
@@ -4492,7 +4540,7 @@ input,button,select{font-family:inherit;color:inherit}
         <sc-for list="{{ wForOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
       </div>
     </sc-if>
-    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 4px"><span style="font:500 13px 'DM Sans',sans-serif;color:#7a6e66">{{ shopHint }}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 4px"><span style="font:500 13px 'DM Sans',sans-serif;color:#695d55">{{ shopHint }}</span></div>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
       <sc-for list="{{ shopItems }}" as="w" hint-placeholder-count="6">
         <button onClick="{{ w.tap }}" style="{{ w.style }}">
@@ -4504,7 +4552,7 @@ input,button,select{font-family:inherit;color:inherit}
         </button>
       </sc-for>
     </div>
-    <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#7a6e66;padding:0 4px;text-wrap:pretty">{{ shopNote }}</div>
+    <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#695d55;padding:0 4px;text-wrap:pretty">{{ shopNote }}</div>
   </div>
   </sc-if>
 </div>
@@ -4514,17 +4562,17 @@ input,button,select{font-family:inherit;color:inherit}
 <div style="padding:10px 20px 32px;display:flex;flex-direction:column;gap:18px;animation:fadeIn .25s">
   <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
     <div style="display:flex;flex-direction:column;gap:2px">
-      <div style="font:500 14px 'DM Sans',sans-serif;color:#7a6e66">Shared household</div>
+      <div style="font:500 14px 'DM Sans',sans-serif;color:#695d55">Shared household</div>
       <div style="font:600 28px/1.1 'Fredoka',sans-serif">Upkeep</div>
     </div>
     <button onClick="{{ openAddUpkeep }}" style="height:44px;padding:0 16px;border-radius:22px;border:none;background:#2a2320;color:#fffdf9;font:600 15px 'DM Sans',sans-serif;cursor:pointer">+ Add</button>
   </div>
-  <div style="font:400 15px/1.45 'DM Sans',sans-serif;color:#5e534c;margin-top:-6px;text-wrap:pretty">Recurring jobs for the things you own. Tap <b>Done</b> and the timer starts again.</div>
+  {{ upkeepBanner }}
   <div style="display:flex;gap:6px;background:#ece4da;border-radius:16px;padding:4px">
     <sc-for list="{{ upFilterOpts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
   </div>
   <sc-if value="{{ upEmpty }}" hint-placeholder-val="{{ false }}">
-    <div style="background:#fffdf9;border-radius:24px;padding:22px 18px;font:400 15px/1.45 'DM Sans',sans-serif;color:#7a6e66;text-align:center">{{ upEmpty }}</div>
+    <div style="background:#fffdf9;border-radius:24px;padding:22px 18px;font:400 15px/1.45 'DM Sans',sans-serif;color:#695d55;text-align:center">{{ upEmpty }}</div>
   </sc-if>
   <sc-for list="{{ upkeepGroups }}" as="g" hint-placeholder-count="3">
     <div style="background:#fffdf9;border-radius:24px;padding:16px 16px 6px;display:flex;flex-direction:column">
@@ -4534,7 +4582,7 @@ input,button,select{font-family:inherit;color:inherit}
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
             <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
               <div style="font:600 16px 'DM Sans',sans-serif">{{ u.name }}</div>
-              <div style="font:400 13px 'DM Sans',sans-serif;color:#7a6e66">{{ u.meta }}</div>
+              <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">{{ u.meta }}</div>
               <span style="{{ u.ownerStyle }}">{{ u.ownerName }}</span>
             </div>
             <span style="{{ u.chipStyle }}">{{ u.chip }}</span>
@@ -4555,14 +4603,15 @@ input,button,select{font-family:inherit;color:inherit}
 <div style="padding:10px 20px 32px;display:flex;flex-direction:column;gap:18px;animation:fadeIn .25s">
   <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
     <div style="display:flex;flex-direction:column;gap:2px">
-      <div style="font:500 14px 'DM Sans',sans-serif;color:#7a6e66;display:flex;align-items:center;gap:6px"><span style="{{ syncDot }}"></span>{{ syncLine }}</div>
+      <div style="font:500 14px 'DM Sans',sans-serif;color:#695d55;display:flex;align-items:center;gap:6px"><span style="{{ syncDot }}"></span>{{ syncLine }}</div>
       <div style="font:600 28px/1.1 'Fredoka',sans-serif">Shopping</div>
     </div>
     <sc-if value="{{ hasShopping }}" hint-placeholder-val="{{ true }}">
       <button onClick="{{ copyList }}" style="height:44px;padding:0 16px;border-radius:22px;border:1px solid #e3d9cd;background:#fffdf9;font:600 15px 'DM Sans',sans-serif;cursor:pointer">Copy list</button>
     </sc-if>
   </div>
-  <div style="background:oklch(0.95 0.04 75);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:8px">
+  {{ shopBanner }}
+  <div style="background:#fffdf9;border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 2px var(--accSoft2)">
     <div style="display:flex;justify-content:space-between;align-items:baseline">
       <div style="font:600 18px 'Fredoka',sans-serif">Shopping list</div>
       <div style="font:500 13px 'DM Sans',sans-serif;color:oklch(0.44 0.1 60)">{{ shopCount }}</div>
@@ -4576,7 +4625,7 @@ input,button,select{font-family:inherit;color:inherit}
         <div style="display:flex;align-items:center;gap:4px;border-bottom:1px solid oklch(0.9 0.04 75)">
           <button onClick="{{ r.toggle }}" style="flex:1;display:flex;align-items:center;gap:12px;min-height:50px;padding:0 2px;border:none;background:none;cursor:pointer;text-align:left;min-width:0">
             <span style="{{ r.checkStyle }}"><span style="{{ r.tickStyle }}"></span></span>
-            <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="{{ r.textStyle }}">{{ r.name }}</span><span style="font:400 12px 'DM Sans',sans-serif;color:#8a7e75">{{ r.sub }}</span></span>
+            <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="{{ r.textStyle }}">{{ r.name }}</span><span style="font:400 12px 'DM Sans',sans-serif;color:#7a6e66">{{ r.sub }}</span></span>
           </button>
           <button onClick="{{ r.remove }}" title="{{ r.removeTitle }}" style="{{ r.removeStyle }}">×</button>
         </div>
@@ -4592,7 +4641,7 @@ input,button,select{font-family:inherit;color:inherit}
   <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:6px">
     <div style="display:flex;flex-direction:column;gap:2px">
       <div style="font:600 20px 'Fredoka',sans-serif">At home</div>
-      <div style="font:400 13px/1.4 'DM Sans',sans-serif;color:#7a6e66">Tap an item to edit it.</div>
+      <div style="font:400 13px/1.4 'DM Sans',sans-serif;color:#695d55">Tap an item to edit it.</div>
     </div>
     <button onClick="{{ openAddStock }}" style="height:44px;padding:0 16px;border-radius:22px;border:none;background:#2a2320;color:#fffdf9;font:600 15px 'DM Sans',sans-serif;cursor:pointer">+ Track</button>
   </div>
@@ -4612,24 +4661,24 @@ input,button,select{font-family:inherit;color:inherit}
       </div>
     </sc-for>
   </div>
-  <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#7a6e66;padding:0 4px">Items join the shopping list when they drop to their restock level.</div>
+  <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#695d55;padding:0 4px">Items join the shopping list when they drop to their restock level.</div>
 </div>
 </sc-if>
 
 <sc-if value="{{ tabJourneys }}" hint-placeholder-val="{{ false }}">
 <div style="padding:10px 20px 32px;display:flex;flex-direction:column;gap:16px;animation:fadeIn .25s">
   <div style="display:flex;flex-direction:column;gap:2px">
-    <div style="font:500 14px 'DM Sans',sans-serif;color:#7a6e66">The long game</div>
+    <div style="font:500 14px 'DM Sans',sans-serif;color:#695d55">The long game</div>
     <div style="font:600 28px/1.1 'Fredoka',sans-serif">Journeys</div>
   </div>
-  <div style="font:400 15px/1.45 'DM Sans',sans-serif;color:#5e534c;margin-top:-4px;text-wrap:pretty">Bigger projects with milestones, kept apart from the daily list so Today stays light.</div>
+  {{ journeyBanner }}
   {{ weekendEntryEl }}
   <sc-for list="{{ journeyCards }}" as="j" hint-placeholder-count="2">
     <button onClick="{{ j.open }}" style="display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:26px;border:none;background:#fffdf9;cursor:pointer;text-align:left">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;width:100%">
         <div style="display:flex;flex-direction:column;gap:4px">
           <div style="font:600 20px/1.15 'Fredoka',sans-serif">{{ j.title }}</div>
-          <div style="font:400 14px 'DM Sans',sans-serif;color:#7a6e66">{{ j.subtitle }}</div>
+          <div style="font:400 14px 'DM Sans',sans-serif;color:#695d55">{{ j.subtitle }}</div>
         </div>
         <span style="{{ j.ownerStyle }}">{{ j.ownerName }}</span>
       </div>
@@ -4663,7 +4712,7 @@ input,button,select{font-family:inherit;color:inherit}
     <button onClick="{{ closeJourney }}" style="align-self:flex-start;height:40px;padding:0 14px 0 10px;border-radius:20px;border:1px solid #e3d9cd;background:#fffdf9;font:600 15px 'DM Sans',sans-serif;cursor:pointer">‹ Journeys</button>
     <div style="display:flex;flex-direction:column;gap:4px">
       <div style="font:600 28px/1.1 'Fredoka',sans-serif;text-wrap:pretty">{{ jd.title }}</div>
-      <div style="font:400 15px 'DM Sans',sans-serif;color:#7a6e66">{{ jd.subtitle }}</div>
+      <div style="font:400 15px 'DM Sans',sans-serif;color:#695d55">{{ jd.subtitle }}</div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <div style="flex:1;height:12px;border-radius:6px;background:#ece3d8;overflow:hidden"><div style="{{ jd.barStyle }}"></div></div>
@@ -4677,7 +4726,7 @@ input,button,select{font-family:inherit;color:inherit}
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 4px">
           <div style="font:600 18px 'Fredoka',sans-serif">Applications</div>
-          <div style="font:500 13px 'DM Sans',sans-serif;color:#7a6e66">Tap a stage to move it</div>
+          <div style="font:500 13px 'DM Sans',sans-serif;color:#695d55">Tap a stage to move it</div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
           <sc-for list="{{ jd.stageCounts }}" as="sc" hint-placeholder-count="4">
@@ -4689,14 +4738,14 @@ input,button,select{font-family:inherit;color:inherit}
             <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f0e8de">
               <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
                 <div style="font:600 16px 'DM Sans',sans-serif">{{ ap.company }}</div>
-                <div style="font:400 13px 'DM Sans',sans-serif;color:#7a6e66">{{ ap.role }}</div>
+                <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">{{ ap.role }}</div>
               </div>
               <button onClick="{{ ap.cycle }}" style="{{ ap.stageStyle }}">{{ ap.stage }}</button>
               <button onClick="{{ ap.remove }}" style="width:28px;height:36px;border:none;background:none;cursor:pointer;font:500 20px 'DM Sans',sans-serif;color:#a89b90">×</button>
             </div>
           </sc-for>
           <sc-if value="{{ jd.noApps }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:16px 0;font:400 14px 'DM Sans',sans-serif;color:#7a6e66">No applications yet. Add the first one below.</div>
+            <div style="padding:16px 0;font:400 14px 'DM Sans',sans-serif;color:#695d55">No applications yet. Add the first one below.</div>
           </sc-if>
           <div style="display:flex;flex-direction:column;gap:8px;padding:12px 0 14px">
             <input value="{{ f.company }}" onChange="{{ setCompany }}" placeholder="Company" style="height:46px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 14px;font-size:16px;outline:none">
@@ -4721,7 +4770,7 @@ input,button,select{font-family:inherit;color:inherit}
             </div>
             <button onClick="{{ st.toggle }}" style="flex:1;border:none;background:none;text-align:left;cursor:pointer;padding:14px 0;display:flex;flex-direction:column;gap:3px">
               <span style="{{ st.textStyle }}">{{ st.name }}</span>
-              <sc-if value="{{ st.hint }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px/1.4 'DM Sans',sans-serif;color:#7a6e66">{{ st.hint }}</span></sc-if>
+              <sc-if value="{{ st.hint }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px/1.4 'DM Sans',sans-serif;color:#695d55">{{ st.hint }}</span></sc-if>
             </button>
             <button onClick="{{ st.remove }}" style="width:30px;border:none;background:none;cursor:pointer;font:500 20px 'DM Sans',sans-serif;color:#c4b8ad">×</button>
           </div>
@@ -4799,7 +4848,7 @@ input,button,select{font-family:inherit;color:inherit}
           <div style="display:flex;align-items:center;gap:12px;background:#f6f1ea;border-radius:18px;padding:10px 14px">
             <div style="width:72px;height:72px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;flex:none">{{ pcView.preview }}</div>
             <div style="display:flex;flex-direction:column;gap:2px">
-              <span style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#7a6e66">Souvenir</span>
+              <span style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#695d55">Souvenir</span>
               <span style="font:500 15px/1.35 'DM Sans',sans-serif">{{ pcView.souvenir }} added to the wardrobe</span>
             </div>
           </div>
@@ -4815,7 +4864,7 @@ input,button,select{font-family:inherit;color:inherit}
           <sc-for list="{{ slotOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 14px 'DM Sans',sans-serif;color:#7a6e66">Repeat on</span><span style="font:500 13px 'DM Sans',sans-serif;color:#7a6e66">{{ daysLabel }}</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:600 14px 'DM Sans',sans-serif;color:#695d55">Repeat on</span><span style="font:500 13px 'DM Sans',sans-serif;color:#695d55">{{ daysLabel }}</span></div>
           <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
             <sc-for list="{{ dayOpts }}" as="o" hint-placeholder-count="7"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
           </div>
@@ -4823,7 +4872,7 @@ input,button,select{font-family:inherit;color:inherit}
             <sc-for list="{{ dayPresets }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="height:34px;padding:0 12px;border-radius:17px;border:1px solid #e3d9cd;background:#fffdf9;font:600 13px 'DM Sans',sans-serif;cursor:pointer">{{ o.label }}</button></sc-for>
           </div>
         </div>
-        <div style="font:400 13px 'DM Sans',sans-serif;color:#7a6e66">{{ taskSheetNote }}</div>
+        <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">{{ taskSheetNote }}</div>
       </div>
     </sc-if>
 
@@ -4840,12 +4889,12 @@ input,button,select{font-family:inherit;color:inherit}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <span style="font:600 14px 'DM Sans',sans-serif;color:#7a6e66">Whose job is it?</span>
+          <span style="font:600 14px 'DM Sans',sans-serif;color:#695d55">Whose job is it?</span>
           <div style="display:flex;gap:6px;background:#f3ede5;border-radius:16px;padding:4px">
             <sc-for list="{{ ownerOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
           </div>
         </div>
-        <div style="font:400 13px 'DM Sans',sans-serif;color:#7a6e66">The timer starts today. Tap Done to restart it.</div>
+        <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">The timer starts today. Tap Done to restart it.</div>
       </div>
     </sc-if>
 
@@ -4853,9 +4902,9 @@ input,button,select{font-family:inherit;color:inherit}
       <div style="display:flex;flex-direction:column;gap:12px">
         <input value="{{ f.name }}" onChange="{{ setName }}" id="fid-st-name" placeholder="e.g. Dish soap" style="height:52px;border-radius:16px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 16px;font-size:17px;outline:none">
         <div style="display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px">
-          <label style="display:flex;flex-direction:column;gap:5px;font:500 13px 'DM Sans',sans-serif;color:#7a6e66">At home<input value="{{ f.qty }}" onChange="{{ setQty }}" inputMode="numeric" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;text-align:center;font-size:17px;outline:none;color:#2a2320"></label>
-          <label style="display:flex;flex-direction:column;gap:5px;font:500 13px 'DM Sans',sans-serif;color:#7a6e66">Restock at<input value="{{ f.min }}" onChange="{{ setMin }}" inputMode="numeric" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;text-align:center;font-size:17px;outline:none;color:#2a2320"></label>
-          <label style="display:flex;flex-direction:column;gap:5px;font:500 13px 'DM Sans',sans-serif;color:#7a6e66">Unit<input value="{{ f.unit }}" onChange="{{ setUnit }}" placeholder="bottles" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 12px;font-size:17px;outline:none;color:#2a2320"></label>
+          <label style="display:flex;flex-direction:column;gap:5px;font:500 13px 'DM Sans',sans-serif;color:#695d55">At home<input value="{{ f.qty }}" onChange="{{ setQty }}" inputMode="numeric" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;text-align:center;font-size:17px;outline:none;color:#2a2320"></label>
+          <label style="display:flex;flex-direction:column;gap:5px;font:500 13px 'DM Sans',sans-serif;color:#695d55">Restock at<input value="{{ f.min }}" onChange="{{ setMin }}" inputMode="numeric" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;text-align:center;font-size:17px;outline:none;color:#2a2320"></label>
+          <label style="display:flex;flex-direction:column;gap:5px;font:500 13px 'DM Sans',sans-serif;color:#695d55">Unit<input value="{{ f.unit }}" onChange="{{ setUnit }}" placeholder="bottles" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 12px;font-size:17px;outline:none;color:#2a2320"></label>
         </div>
       </div>
     </sc-if>
@@ -4873,33 +4922,33 @@ input,button,select{font-family:inherit;color:inherit}
     <sc-if value="{{ sheetSettings }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;flex-direction:column;gap:22px">
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8a7e75;padding:0 2px">This phone</div>
+          <div style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7a6e66;padding:0 2px">This phone</div>
         {{ uiEl }}
         <button onClick="{{ askWho }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:16px;border:none;background:#f6f1ea;cursor:pointer;text-align:left">
-          <span style="display:flex;flex-direction:column;gap:2px"><span style="font:600 15px 'DM Sans',sans-serif">This phone belongs to</span><span style="font:400 13px 'DM Sans',sans-serif;color:#7a6e66">{{ me.name }} · tap to change</span></span>
-          <span style="font:600 18px 'DM Sans',sans-serif;color:#7a6e66">›</span>
+          <span style="display:flex;flex-direction:column;gap:2px"><span style="font:600 15px 'DM Sans',sans-serif">This phone belongs to</span><span style="font:400 13px 'DM Sans',sans-serif;color:#695d55">{{ me.name }} · tap to change</span></span>
+          <span style="font:600 18px 'DM Sans',sans-serif;color:#695d55">›</span>
         </button>
         </div>
         <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8a7e75;padding:0 2px">Your household</div>
+          <div style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7a6e66;padding:0 2px">Your household</div>
           <div style="display:flex;flex-direction:column;gap:6px;background:#f6f1ea;border-radius:16px;padding:12px 14px">
           <div style="display:flex;align-items:center;gap:8px;font:600 14px 'DM Sans',sans-serif"><span style="{{ syncDot }}"></span>{{ syncTitle }}</div>
           <div style="font:400 13px/1.45 'DM Sans',sans-serif;color:#5e534c;text-wrap:pretty">{{ syncHelp }}</div>
           </div>
-          <div style="font:600 13px 'DM Sans',sans-serif;color:#7a6e66;padding:0 2px">Names</div>
+          <div style="font:600 13px 'DM Sans',sans-serif;color:#695d55;padding:0 2px">Names</div>
           <input id="fid-n2" value="{{ f.n2 }}" onChange="{{ setN2 }}" placeholder="Fidaa" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 14px;font-size:17px;outline:none">
           <input id="fid-n1" value="{{ f.n1 }}" onChange="{{ setN1 }}" placeholder="Oussama" style="height:50px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 14px;font-size:17px;outline:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <label style="display:flex;flex-direction:column;gap:5px;font:600 13px 'DM Sans',sans-serif;color:#7a6e66">Anniversary<input id="fid-anniv" type="date" value="{{ f.anniv }}" onChange="{{ setAnniv }}" style="height:46px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 10px;font-size:15px;color:#2a2320;min-width:0"></label>
-          <label style="display:flex;flex-direction:column;gap:5px;font:600 13px 'DM Sans',sans-serif;color:#7a6e66">Dutch exam date<input id="fid-exam" type="date" value="{{ f.exam }}" onChange="{{ setExam }}" style="height:46px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 10px;font-size:15px;color:#2a2320;min-width:0"></label>
+          <label style="display:flex;flex-direction:column;gap:5px;font:600 13px 'DM Sans',sans-serif;color:#695d55">Anniversary<input id="fid-anniv" type="date" value="{{ f.anniv }}" onChange="{{ setAnniv }}" style="height:46px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 10px;font-size:15px;color:#2a2320;min-width:0"></label>
+          <label style="display:flex;flex-direction:column;gap:5px;font:600 13px 'DM Sans',sans-serif;color:#695d55">Dutch exam date<input id="fid-exam" type="date" value="{{ f.exam }}" onChange="{{ setExam }}" style="height:46px;border-radius:14px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 10px;font-size:15px;color:#2a2320;min-width:0"></label>
         </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <button onClick="{{ toggleAdv }}" aria-expanded="{{ advOpen }}" style="display:flex;align-items:center;justify-content:space-between;border:none;background:none;padding:0 2px;cursor:pointer"><span style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8a7e75">Advanced</span><span style="{{ advChevron }}">⌄</span></button>
+          <button onClick="{{ toggleAdv }}" aria-expanded="{{ advOpen }}" style="display:flex;align-items:center;justify-content:space-between;border:none;background:none;padding:0 2px;cursor:pointer"><span style="font:600 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7a6e66">Advanced</span><span style="{{ advChevron }}">⌄</span></button>
           <sc-if value="{{ advOpen }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;flex-direction:column;gap:8px">
         <button onClick="{{ toggleTest }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:16px;border:none;background:#f6f1ea;cursor:pointer;text-align:left">
-          <span style="display:flex;flex-direction:column;gap:2px"><span style="font:600 15px 'DM Sans',sans-serif">Test mode</span><span style="font:400 13px 'DM Sans',sans-serif;color:#7a6e66">Unlimited coins for trying out the shop</span></span>
+          <span style="display:flex;flex-direction:column;gap:2px"><span style="font:600 15px 'DM Sans',sans-serif">Test mode</span><span style="font:400 13px 'DM Sans',sans-serif;color:#695d55">Unlimited coins for trying out the shop</span></span>
           <span style="{{ testTrack }}"><span style="{{ testKnob }}"></span></span>
         </button>
         <button onClick="{{ resetData }}" style="height:44px;border:none;background:none;font:500 14px 'DM Sans',sans-serif;color:oklch(0.52 0.14 25);cursor:pointer">{{ resetLabel }}</button>
@@ -4955,12 +5004,12 @@ input,button,select{font-family:inherit;color:inherit}
           <sc-for list="{{ chEditRows }}" as="r" hint-placeholder-count="5">
             <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0e8de">
               <span style="{{ r.tagStyle }}">{{ r.tag }}</span>
-              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font:500 15px/1.3 'DM Sans',sans-serif">{{ r.name }}</span><span style="font:400 12px 'DM Sans',sans-serif;color:#8a7e75">{{ r.who }}</span></span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font:500 15px/1.3 'DM Sans',sans-serif">{{ r.name }}</span><span style="font:400 12px 'DM Sans',sans-serif;color:#7a6e66">{{ r.who }}</span></span>
               <button onClick="{{ r.remove }}" title="Remove" style="width:36px;height:36px;flex:none;border:none;background:none;cursor:pointer;font:500 20px 'DM Sans',sans-serif;color:#a89b90">×</button>
             </div>
           </sc-for>
         </div>
-        <button onClick="{{ restoreChallenges }}" style="height:40px;border:none;background:none;font:500 14px 'DM Sans',sans-serif;color:#7a6e66;cursor:pointer">Restore the original list</button>
+        <button onClick="{{ restoreChallenges }}" style="height:40px;border:none;background:none;font:500 14px 'DM Sans',sans-serif;color:#695d55;cursor:pointer">Restore the original list</button>
       </div>
     </sc-if>
 
@@ -4971,6 +5020,7 @@ input,button,select{font-family:inherit;color:inherit}
 </div>
 </sc-if>
 
+{{ glowEl }}
 {{ storyEl }}
 {{ offlineEl }}
 
@@ -4979,7 +5029,7 @@ input,button,select{font-family:inherit;color:inherit}
     <div onClick="{{ celeb.close }}" style="position:absolute;inset:0;background:rgba(42,35,32,.45)"></div>
     <div style="position:relative;width:100%;max-width:320px;background:#fffdf9;border-radius:30px;padding:22px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;animation:fidPopIn .45s cubic-bezier(.2,.9,.3,1.3);overflow:hidden">
       <div style="position:absolute;inset:0 0 auto 0;height:150px;background:radial-gradient(circle at 50% 70%,oklch(0.94 0.07 85),transparent 70%)"></div>
-      <span style="position:relative;font:600 12px 'DM Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:oklch(0.5 0.12 300)">{{ celeb.kicker }}</span>
+      <span style="position:relative;font:600 12px 'DM Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--accInk)">{{ celeb.kicker }}</span>
       <div style="position:relative;height:170px;display:flex;align-items:flex-end;justify-content:center">{{ celeb.pig }}</div>
       <span style="position:relative;font:600 26px/1.1 'Fredoka',sans-serif">{{ celeb.title }}</span>
       <span style="font:400 15px/1.4 'DM Sans',sans-serif;color:#5e534c;text-wrap:pretty">{{ celeb.text }}</span>
