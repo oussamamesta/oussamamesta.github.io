@@ -482,7 +482,7 @@ const STORY_COINS = 15, DAILY_COINS = 5, MOCK_MIN = 20;
 // stamp and souvenir fact. Pass a stop's lesson (6 of 8 right) and the companion walks on to the next.
 // mix = [Dutch exam items, KNM questions, traffic questions]; dre/kre pick the ones that fit the place.
 const ROUTE = [
-  { id: 'schiphol', name: 'Schiphol', city: 'Haarlemmermeer', topic: 'First words', hue: 220, deco: 'plane', icon: 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.3c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
+  { id: 'schiphol', name: 'Luchthaven Schiphol', city: 'Schiphol', topic: 'First words', hue: 220, deco: 'plane', icon: 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.3c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
     say: ['Welkom in Nederland! Hier begint onze reis.', 'Welcome to the Netherlands! Our journey starts here.'], fact: 'Schiphol lies about 3 metres below sea level, on the bottom of a lake that was pumped dry.',
     mix: [6, 2, 0], dre: /\b(heet|heten|kom uit|woon|wonen|naam|hallo|hoi|goedemorgen|goedemiddag|hoe gaat|dank|welkom|spreek|spreekt|begrijp)\b/i, kre: /inburgering|DUO|volunteer|greet|handshake/i },
   { id: 'gemeente', name: 'Het stadhuis', city: 'Amsterdam', topic: 'Registering', hue: 25, deco: 'canal', icon: 'M3 21h18M5 18v-7M9.5 18v-7M14.5 18v-7M19 18v-7M12 3l9 5H3z',
@@ -506,7 +506,7 @@ const ROUTE = [
   { id: 'denhaag', name: 'Het Binnenhof', city: 'Den Haag', topic: 'Government & rights', hue: 300, deco: 'houses', icon: 'M3 19h18M4 8l4 4 4-7 4 7 4-4-2 11H6z',
     say: ['Hier maken de politici de wetten.', 'This is where the politicians make the laws.'], fact: 'The Binnenhof is one of the oldest parliament buildings in the world that is still in use.',
     mix: [2, 6, 0], dre: /gemeente|brief|formulier|examen/i, kre: /King|Kamer|parliament|government|mayor|vote|elect|\blaws?\b|Constitution|discrimin|judge|province|minister|freedom|equal|Prinsjesdag|water board|church/i },
-  { id: 'kinderdijk', name: 'Kinderdijk', city: 'Zuid-Holland', topic: 'History & water', hue: 190, deco: 'mill', icon: 'M10 21l1-8h2l1 8zM12 12L5 5M12 12l7-7M12 12l-7 7M12 12l7 7',
+  { id: 'kinderdijk', name: 'De molens', city: 'Kinderdijk', topic: 'History & water', hue: 190, deco: 'mill', icon: 'M10 21l1-8h2l1 8zM12 12L5 5M12 12l7-7M12 12l-7 7M12 12l7 7',
     say: ['Kijk, negentien molens! Ze houden het water weg.', 'Look, nineteen windmills! They keep the water out.'], fact: 'The 19 windmills of Kinderdijk were built around 1740 to pump water out of the low polders.',
     mix: [2, 6, 0], dre: /water|regen|molen|\bwind\b/i, kre: /dike|1953|flood|\bwar\b|1940|1945|Anne Frank|VOC|Golden|William|slavery|sea level|euro|liberat/i },
   { id: 'scheveningen', name: 'Het strand', city: 'Scheveningen', topic: 'Weather & free time', hue: 65, deco: 'dunes', icon: 'M12 3v2M5.6 5.6 7 7M18.4 5.6 17 7M3 12h2M19 12h2M8 12a4 4 0 0 1 8 0M2 17c2 0 2-1.2 4-1.2s2 1.2 4 1.2 2-1.2 4-1.2 2 1.2 4 1.2 2-1.2 4-1.2',
@@ -2228,16 +2228,103 @@ class Component extends DCLogic {
       state === 'locked' ? h('path', { d: 'M40 47v-6a10 10 0 0 1 20 0v6M37 47h26v18H37z', fill: 'none', stroke: '#fffdf9', strokeWidth: 4.5, strokeLinejoin: 'round', strokeLinecap: 'round' })
         : h('g', { transform: 'translate(29 29) scale(1.75)' }, h('path', { d: stop.icon, fill: 'none', stroke: '#fffdf9', strokeWidth: 2.1, strokeLinecap: 'round', strokeLinejoin: 'round' })));
   }
+  // A landmark drawing for each Leerroute stop, in a 150×120 box.
+  routeLandmark(id) {
+    const h = React.createElement, d = (st, ...k) => h('div', { style: { position: 'absolute', ...st } }, ...k);
+    const R = (x, y, w, hh, c, ex) => d({ left: x, top: y, width: w, height: hh, background: c, ...(ex || {}) });
+    const CREAM = '#fffdf9', BRICK = 'oklch(0.58 0.12 32)', BRICKD = 'oklch(0.5 0.11 30)', STONE = 'oklch(0.85 0.03 80)', ROOF = 'oklch(0.45 0.05 250)', GLASS = 'oklch(0.82 0.06 225)';
+    const win = (x, y, w, hh) => R(x, y, w, hh, GLASS, { borderRadius: '3px 3px 0 0', boxShadow: 'inset 0 0 0 1.5px ' + CREAM });
+    const gable = (x, w, hh, c, kind) => d({ left: x, top: 120 - hh, width: w, height: hh },
+      R(0, 0, w, hh, c, { clipPath: kind === 0 ? 'polygon(0 18%,20% 18%,20% 8%,40% 8%,40% 0,60% 0,60% 8%,80% 8%,80% 18%,100% 18%,100% 100%,0 100%)' : kind === 1 ? 'polygon(0 25%,25% 18%,35% 0,65% 0,75% 18%,100% 25%,100% 100%,0 100%)' : 'polygon(0 22%,50% 0,100% 22%,100% 100%,0 100%)' }),
+      ...[.3, .55].flatMap(r => [win(w * .18, hh * r, w * .24, hh * .14), win(w * .58, hh * r, w * .24, hh * .14)]), R(w * .38, hh * .8, w * .24, hh * .2, 'oklch(0.4 0.07 30)', { borderRadius: '6px 6px 0 0' }));
+    const water = (y, hh) => R(0, y, 150, hh || 14, 'oklch(0.72 0.08 225)', { borderRadius: 7, backgroundImage: 'radial-gradient(ellipse 10px 2px at 50% 50%,rgba(255,255,255,.6) 90%,transparent) 0 0/24px 7px' });
+    const mill = (x, sc, dl) => d({ left: x, top: 120 - 80 * sc, width: 50 * sc, height: 80 * sc },
+      R(16 * sc, 30 * sc, 18 * sc, 50 * sc, 'oklch(0.45 0.05 40)', { clipPath: 'polygon(22% 0,78% 0,100% 100%,0 100%)' }), R(19 * sc, 22 * sc, 12 * sc, 10 * sc, 'oklch(0.4 0.04 40)', { borderRadius: '50% 50% 0 0' }),
+      d({ left: 1 * sc, top: 3 * sc, width: 48 * sc, height: 48 * sc, animation: `fidSpin ${7 + dl}s linear infinite` }, ...[0, 90].map(r => R(22 * sc, 0, 4 * sc, 48 * sc, CREAM, { transform: `rotate(${r + 45}deg)`, borderRadius: 2, boxShadow: '0 0 0 1px rgba(60,40,30,.15)' }))));
+    switch (id) {
+      case 'schiphol': return [R(0, 104, 150, 16, 'oklch(0.5 0.01 250)', { borderRadius: 3 }), ...[10, 45, 80, 115].map(x => R(x, 110, 22, 3, CREAM)),
+        R(96, 14, 12, 92, 'oklch(0.9 0.01 250)', { boxShadow: 'inset -3px 0 0 rgba(0,0,0,.08)' }), R(84, 4, 36, 18, 'oklch(0.55 0.06 220)', { borderRadius: '8px 8px 4px 4px', boxShadow: 'inset 0 -6px 0 ' + GLASS }), R(100, -4, 4, 9, '#7a6e66'),
+        d({ left: 2, top: 26, width: 70, height: 40, animation: 'fidBob 3s ease-in-out infinite' }, R(8, 16, 60, 12, CREAM, { borderRadius: '10px 20px 20px 10px', boxShadow: 'inset 0 -3px 0 oklch(0.85 0.02 250)' }), R(28, 4, 16, 34, 'oklch(0.55 0.1 220)', { transform: 'skewX(-30deg)', borderRadius: 3 }), R(4, 6, 12, 14, 'oklch(0.55 0.1 220)', { transform: 'skewX(-25deg)', borderRadius: 2 }), ...[34, 42, 50, 58].map(x => R(x, 19, 4, 4, GLASS, { borderRadius: 2 })))];
+      case 'gemeente': return [gable(0, 34, 86, 'oklch(0.62 0.12 30)', 0), gable(34, 30, 98, 'oklch(0.78 0.07 75)', 1), gable(64, 32, 80, 'oklch(0.5 0.07 250)', 2), gable(96, 30, 92, 'oklch(0.68 0.1 50)', 0), gable(126, 26, 76, 'oklch(0.6 0.1 15)', 1),
+        water(108, 14), d({ left: 46, top: 96, width: 56, height: 22, borderRadius: '28px 28px 0 0', border: '6px solid ' + BRICK, borderBottom: 'none', boxSizing: 'border-box' })];
+      case 'markt': return [R(40, 30, 76, 72, STONE, { clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }), R(70, -4, 16, 40, STONE, { clipPath: 'polygon(50% 0,100% 30%,100% 100%,0 100%,0 30%)' }), R(73, -14, 10, 14, 'oklch(0.6 0.08 160)', { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }),
+        win(54, 56, 10, 22), win(92, 56, 10, 22), d({ left: 70, top: 46, width: 16, height: 16, borderRadius: '50%', background: CREAM, boxShadow: 'inset 0 0 0 2px ' + BRICKD }),
+        d({ left: 0, top: 78, width: 54, height: 42 }, R(0, 0, 54, 12, `repeating-linear-gradient(90deg,oklch(0.62 0.18 25) 0 9px,${CREAM} 9px 18px)`, { borderRadius: '4px 4px 0 0' }), R(4, 12, 46, 20, 'oklch(0.72 0.08 60)'), ...[8, 20, 32].map((x, i) => R(x, 6 + 12, 9, 9, ['oklch(0.62 0.2 28)', 'oklch(0.85 0.15 92)', 'oklch(0.65 0.15 140)'][i], { borderRadius: '50%' })), R(6, 32, 3, 10, '#7a6e66'), R(45, 32, 3, 10, '#7a6e66')),
+        d({ left: 118, top: 92, width: 30, height: 28 }, ...['oklch(0.62 0.2 25)', 'oklch(0.86 0.15 92)', 'oklch(0.72 0.16 350)'].map((c, i) => R(i * 10, 0, 8, 10, c, { borderRadius: '2px 2px 5px 5px', clipPath: 'polygon(0 0,25% 30%,50% 0,75% 30%,100% 0,100% 100%,0 100%)' })), ...[3, 13, 23].map(x => R(x, 10, 2, 18, 'oklch(0.6 0.12 145)')))];
+      case 'huisarts': return [gable(28, 70, 84, 'oklch(0.9 0.03 80)', 2), R(48, 44, 30, 22, CREAM, { borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,.15)' }), R(59, 47, 8, 16, 'oklch(0.6 0.16 150)'), R(55, 51, 16, 8, 'oklch(0.6 0.16 150)'),
+        ...[0, 110].map(x => d({ left: x, top: 50, width: 40, height: 70 }, R(17, 36, 6, 34, 'oklch(0.5 0.06 50)'), R(0, 0, 40, 42, 'oklch(0.62 0.13 145)', { borderRadius: '50%', boxShadow: 'inset -6px -6px 0 rgba(0,0,0,.08)' })))];
+      case 'utrecht': return [d({ left: 52, top: -6, width: 46, height: 126 }, R(6, 50, 34, 76, 'oklch(0.72 0.06 60)'), R(10, 18, 26, 36, 'oklch(0.75 0.06 60)'), R(14, -4, 18, 24, 'oklch(0.78 0.06 65)', { clipPath: 'polygon(20% 0,80% 0,100% 100%,0 100%)' }), R(21, -14, 4, 12, '#7a6e66'),
+          ...[[12, 62], [26, 62], [12, 92], [26, 92]].map(([x, y]) => R(x, y, 8, 22, 'oklch(0.45 0.05 50)', { borderRadius: '4px 4px 0 0' })), d({ left: 16, top: 26, width: 14, height: 14, borderRadius: '50%', background: CREAM, boxShadow: 'inset 0 0 0 2px #7a6e66' })),
+        R(0, 112, 150, 4, '#7a6e66'), d({ left: 0, top: 88, width: 150, height: 26, animation: 'fidSwim 7s ease-in-out infinite' }, R(4, 0, 64, 22, 'oklch(0.86 0.16 92)', { borderRadius: '14px 4px 4px 4px' }), R(4, 14, 64, 4, 'oklch(0.48 0.12 260)'), ...[14, 30, 46].map(x => R(x, 4, 12, 8, 'oklch(0.4 0.05 250)', { borderRadius: 2 })))];
+      case 'school': return [R(14, 46, 110, 74, BRICK), R(8, 36, 122, 14, ROOF, { borderRadius: 3 }), ...[24, 54, 84, 104].map(x => win(x, 60, 14, 16)), R(60, 92, 20, 28, 'oklch(0.55 0.12 220)', { borderRadius: '10px 10px 0 0' }),
+        d({ left: 58, top: 8, width: 24, height: 24, borderRadius: '50%', background: CREAM, boxShadow: '0 0 0 3px ' + BRICKD }, R(11, 4, 2, 9, INK), R(11, 11, 7, 2, INK)), R(128, 6, 2, 50, '#7a6e66'), R(130, 6, 18, 12, `linear-gradient(180deg,oklch(0.55 0.2 25) 33%,${CREAM} 33% 66%,oklch(0.45 0.15 260) 66%)`, { animation: 'fidSway 2s ease-in-out infinite', transformOrigin: '0 50%' })];
+      case 'rotterdam': return [water(100, 20), R(14, 4, 6, 100, CREAM, { transform: 'rotate(-12deg)', transformOrigin: '50% 100%', boxShadow: 'inset -2px 0 0 rgba(0,0,0,.1)' }), ...[0, 1, 2, 3].map(i => R(17, 10 + i * 12, 100 - i * 18, 2, 'oklch(0.85 0.01 250)', { transform: `rotate(${18 + i * 6}deg)`, transformOrigin: '0 0' })), R(0, 92, 150, 7, 'oklch(0.85 0.02 250)'),
+        d({ left: 100, top: 20, width: 48, height: 80 }, R(20, 0, 6, 80, 'oklch(0.7 0.15 50)'), R(0, 4, 48, 5, 'oklch(0.7 0.15 50)'), R(4, 9, 2, 20, '#7a6e66')),
+        ...[[96, 'oklch(0.6 0.15 25)'], [110, 'oklch(0.55 0.1 250)'], [124, 'oklch(0.65 0.12 150)']].map(([x, c], i) => R(x, 78 - (i % 2) * 8, 14, 14 + (i % 2) * 8, c, { borderRadius: 2 }))];
+      case 'denhaag': return [water(104, 16), d({ left: 30, top: 18, width: 90, height: 90 }, R(18, 30, 54, 60, BRICK, { clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }), R(0, 10, 18, 80, BRICKD), R(72, 10, 18, 80, BRICKD), R(0, 2, 18, 12, ROOF, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }), R(72, 2, 18, 12, ROOF, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }),
+          d({ left: 33, top: 40, width: 24, height: 24, borderRadius: '50%', background: GLASS, boxShadow: 'inset 0 0 0 3px ' + CREAM }), R(37, 68, 16, 22, 'oklch(0.4 0.07 30)', { borderRadius: '8px 8px 0 0' }), win(4, 30, 10, 14), win(76, 30, 10, 14)), R(124, 74, 3, 30, '#7a6e66'), R(127, 74, 16, 10, 'oklch(0.75 0.16 60)', { animation: 'fidSway 2.4s ease-in-out infinite', transformOrigin: '0 50%' })];
+      case 'kinderdijk': return [water(104, 16), mill(0, .9, 0), mill(50, 1.15, 2), mill(108, .8, 1)];
+      case 'scheveningen': return [R(0, 100, 150, 20, 'oklch(0.88 0.08 85)', { borderRadius: '40% 40% 0 0' }), water(92, 12), R(0, 82, 110, 6, CREAM, { boxShadow: '0 2px 0 oklch(0.8 0.02 80)' }), ...[10, 40, 70, 100].map(x => R(x, 86, 3, 14, CREAM)),
+        d({ left: 92, top: 6, width: 70, height: 70, animation: 'fidSpin 18s linear infinite' }, d({ left: 4, top: 4, width: 62, height: 62, borderRadius: '50%', border: '3px solid ' + CREAM, boxSizing: 'border-box' }), ...[0, 45, 90, 135].map(r => R(33, 4, 3, 62, CREAM, { transform: `rotate(${r}deg)` })), ...Array.from({ length: 8 }, (_, i) => { const a = i / 8 * Math.PI * 2; return R(31 + Math.cos(a) * 28, 31 + Math.sin(a) * 28, 9, 9, `oklch(0.7 0.15 ${i * 45})`, { borderRadius: 3 }); })),
+        R(122, 70, 6, 14, CREAM), d({ left: 6, top: 52, width: 40, height: 40 }, R(18, 6, 2, 34, '#7a6e66'), R(0, 0, 38, 14, `repeating-conic-gradient(from -90deg at 50% 100%,oklch(0.72 0.15 350) 0 30deg,${CREAM} 30deg 60deg)`, { borderRadius: '19px 19px 0 0' }))];
+      case 'alkmaar': return [d({ left: 30, top: 6, width: 72, height: 114 }, R(8, 48, 56, 66, 'oklch(0.75 0.06 60)', { clipPath: 'polygon(0 20%,50% 0,100% 20%,100% 100%,0 100%)' }), R(26, 14, 20, 40, CREAM), R(24, 4, 24, 12, ROOF, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }), R(30, 22, 12, 12, 'oklch(0.55 0.08 220)', { borderRadius: '50%', boxShadow: 'inset 0 0 0 2px ' + CREAM }),
+          win(18, 76, 10, 14), win(44, 76, 10, 14), R(28, 96, 16, 18, 'oklch(0.4 0.07 30)', { borderRadius: '8px 8px 0 0' })),
+        ...[[100, 104], [118, 104], [136, 104], [109, 90], [127, 90], [118, 76]].map(([x, y]) => R(x, y, 18, 14, 'oklch(0.84 0.14 85)', { borderRadius: '50%/40%', boxShadow: 'inset 0 -4px 0 oklch(0.72 0.14 75)' })),
+        d({ left: 0, top: 96, width: 30, height: 24 }, R(0, 12, 30, 6, 'oklch(0.7 0.07 60)'), R(4, 2, 22, 12, 'oklch(0.84 0.14 85)', { borderRadius: '50%/40%' }))];
+      case 'zwolle': return [d({ left: 36, top: 8, width: 80, height: 112 }, R(10, 30, 60, 82, BRICK), ...[0, 58].map(x => d({ left: x, top: 10, width: 22, height: 102 }, R(0, 14, 22, 88, BRICKD, { borderRadius: '11px 11px 0 0' }), R(-2, 0, 26, 18, ROOF, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }))), R(30, 22, 20, 14, ROOF, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }),
+          R(28, 76, 24, 36, 'oklch(0.35 0.04 40)', { borderRadius: '12px 12px 0 0' }), win(34, 46, 12, 14)), gable(0, 30, 70, 'oklch(0.7 0.09 70)', 1), gable(122, 28, 64, 'oklch(0.58 0.1 20)', 2)];
+      case 'eindhoven': return [d({ left: 20, top: 40, width: 110, height: 80 }, R(0, 0, 110, 32, 'oklch(0.9 0.01 250)', { borderRadius: '50%', boxShadow: 'inset 0 -6px 0 oklch(0.8 0.02 250)' }), R(10, 12, 90, 8, GLASS, { borderRadius: 4 }), R(36, 30, 38, 50, 'oklch(0.82 0.01 250)', { clipPath: 'polygon(20% 0,80% 0,100% 100%,0 100%)' })),
+        d({ left: 62, top: 2, width: 26, height: 36, animation: 'fidShine 2s ease-in-out infinite' }, R(0, 0, 26, 26, 'oklch(0.95 0.13 95)', { borderRadius: '50%', boxShadow: '0 0 18px 6px oklch(0.95 0.12 95 / .7)' }), R(7, 24, 12, 10, '#a89c92', { borderRadius: 2 })),
+        d({ left: 132, top: 50, width: 14, height: 70 }, R(5, 30, 4, 40, '#5e534c'), R(0, 0, 14, 34, INK, { borderRadius: 4 }), ...['oklch(0.62 0.2 25)', 'oklch(0.85 0.15 85)', 'oklch(0.7 0.18 145)'].map((c, i) => R(3, 3 + i * 10, 8, 8, c, { borderRadius: 4, opacity: i === 2 ? 1 : .35 })))];
+      case 'maastricht': return [R(0, 70, 150, 50, 'oklch(0.72 0.1 140)', { borderRadius: '60% 60% 0 0' }), water(104, 16), d({ left: 4, top: 82, width: 142, height: 26 }, R(0, 0, 142, 7, STONE), ...[4, 40, 76, 112].map(x => d({ left: x, top: 6, width: 30, height: 20, borderRadius: '15px 15px 0 0', border: '5px solid ' + STONE, borderBottom: 'none', boxSizing: 'border-box' }))),
+        d({ left: 60, top: 10, width: 30, height: 72 }, R(4, 20, 22, 52, 'oklch(0.75 0.06 60)'), R(2, 0, 26, 24, 'oklch(0.55 0.1 30)', { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }), win(10, 32, 10, 14))];
+      case 'rijksmuseum': return [water(108, 12), d({ left: 4, top: 14, width: 142, height: 94 }, R(0, 30, 142, 64, BRICK), R(0, 22, 142, 10, ROOF), ...[22, 102].map(x => d({ left: x, top: 0, width: 20, height: 40 }, R(0, 10, 20, 30, BRICKD), R(-2, 0, 24, 14, ROOF, { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }))),
+          ...[10, 30, 92, 112, 128].map(x => win(x, 44, 9, 16)), R(56, 54, 30, 40, 'oklch(0.35 0.05 40)', { borderRadius: '15px 15px 0 0' }), R(66, 36, 10, 10, 'oklch(0.8 0.12 85)', { borderRadius: '50%' }))];
+      case 'groningen': return [d({ left: 56, top: -10, width: 36, height: 130 }, R(4, 46, 28, 84, 'oklch(0.7 0.07 55)'), R(7, 18, 22, 32, 'oklch(0.73 0.07 55)'), R(10, 0, 16, 20, 'oklch(0.6 0.1 160)', { clipPath: 'polygon(50% 0,100% 100%,0 100%)' }), d({ left: 10, top: 26, width: 16, height: 16, borderRadius: '50%', background: CREAM, boxShadow: 'inset 0 0 0 2px #7a6e66' }), ...[56, 84].map(y => win(12, y, 12, 18))),
+        gable(0, 34, 60, 'oklch(0.62 0.12 30)', 0), gable(110, 38, 66, 'oklch(0.6 0.1 250)', 1),
+        d({ left: 2, top: 18, width: 44, height: 30, animation: 'fidBob 2.6s ease-in-out infinite' }, R(0, 10, 44, 10, INK, { transform: 'skewX(-20deg)' }), R(14, 18, 16, 10, INK, { borderRadius: '0 0 6px 6px' }), R(36, 14, 2, 16, 'oklch(0.8 0.14 85)'), R(34, 28, 6, 6, 'oklch(0.8 0.14 85)', { borderRadius: 3 })),
+        ...[[112, 10, 25], [130, 30, 95], [8, 60, 300], [140, 4, 200]].map(([x, y, hu], i) => R(x, y, 6, 10, `oklch(0.7 0.16 ${hu})`, { borderRadius: 2, animation: `fidTwinkle ${1.2 + i * .3}s ease-in-out infinite` }))];
+    }
+    return [];
+  }
+  // How the companion travels to each stop (index = the stop it travels to).
+  routeVehicle(kind) {
+    const h = React.createElement, d = (st, ...k) => h('div', { style: { position: 'absolute', ...st } }, ...k);
+    const R = (x, y, w, hh, c, ex) => d({ left: x, top: y, width: w, height: hh, background: c, ...(ex || {}) }), INKc = INK, CREAM = '#fffdf9';
+    const wheel = (x, y, r) => d({ left: x, top: y, width: r, height: r, borderRadius: '50%', border: '3px solid ' + INKc, boxSizing: 'border-box', background: 'rgba(255,253,249,.4)', animation: 'fidSpin .6s linear infinite' }, R(r / 2 - 4, 0, 2, r - 6, INKc));
+    switch (kind) {
+      case 'bike': return { back: [], front: [wheel(0, 34, 26), wheel(46, 34, 26), R(12, 40, 36, 3, 'oklch(0.6 0.16 25)', { transform: 'rotate(-18deg)', transformOrigin: '0 0' }), R(30, 30, 3, 20, 'oklch(0.6 0.16 25)', { transform: 'rotate(18deg)' }), R(52, 26, 3, 22, 'oklch(0.6 0.16 25)', { transform: 'rotate(-14deg)' }), R(48, 24, 14, 3, INKc, { borderRadius: 2 })], lift: 18 };
+      case 'train': return { back: [R(-14, 18, 100, 40, 'oklch(0.86 0.16 92)', { borderRadius: '22px 8px 8px 8px', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,.08)' })], front: [R(-14, 44, 100, 8, 'oklch(0.48 0.12 260)'), R(-10, 26, 20, 14, 'oklch(0.4 0.05 250)', { borderRadius: '10px 3px 3px 3px' }), wheel(4, 52, 14), wheel(60, 52, 14), R(18, 22, 50, 26, 'transparent', { boxShadow: '0 0 0 4px oklch(0.86 0.16 92)', borderRadius: 6 })], lift: 0, clip: true };
+      case 'tram': return { back: [R(-10, 16, 92, 42, CREAM, { borderRadius: 10, boxShadow: 'inset 0 -14px 0 oklch(0.6 0.18 25)' }), R(30, 4, 2, 14, INKc, { transform: 'rotate(30deg)' })], front: [wheel(4, 52, 14), wheel(56, 52, 14), R(18, 22, 46, 24, 'transparent', { boxShadow: '0 0 0 4px ' + CREAM, borderRadius: 6 })], lift: 0, clip: true };
+      case 'boat': return { back: [], front: [R(-12, 40, 96, 22, 'oklch(0.55 0.12 30)', { borderRadius: '4px 4px 40px 40px' }), R(-12, 40, 96, 5, CREAM), R(-20, 58, 112, 8, 'radial-gradient(ellipse 10px 3px at 50% 50%,rgba(255,255,255,.8) 90%,transparent) 0 0/20px 8px', { animation: 'fidSwim 2s ease-in-out infinite' })], lift: 16 };
+      case 'car': return { back: [R(-8, 30, 88, 26, 'oklch(0.62 0.16 250)', { borderRadius: '14px 18px 8px 8px' })], front: [R(-8, 42, 88, 14, 'oklch(0.55 0.16 250)', { borderRadius: '0 0 8px 8px' }), wheel(2, 48, 18), wheel(56, 48, 18), R(74, 36, 6, 6, 'oklch(0.95 0.12 95)', { borderRadius: 3 })], lift: 8 };
+    }
+    return { back: [], front: [], lift: 0 };
+  }
   // Pass mark for a Leerroute stop: 6 of 8, or 12 of 16 for the final exam.
   routeNeed(stop, n) { return Math.ceil((n || (stop.final ? 16 : 8)) * .75); }
-  routeOpen() { Sound.fx('open'); this.setState({ routeOpen: true, routeSel: null, routePass: false }); }
+  routeOpen() {
+    // The very first visit starts with a postcard from Schiphol.
+    const r = (this.state.pigs[this.state.active] || {}).route || {}; let first = false;
+    try { first = !(r.at > 0) && !localStorage.getItem(KEY + '-route'); localStorage.setItem(KEY + '-route', '1'); } catch (e) {}
+    Sound.fx('open'); this.setState({ routeOpen: true, routeSel: null, routePass: false, routeTip: null, routeArrive: first ? ROUTE[0].id : null });
+    if (first) this.speak(ROUTE[0].say[0]);
+  }
+  routeChest(i) {
+    const r = (this.state.pigs[this.state.active] || {}).route || {};
+    if ((r.chests || []).includes(i) || (r.at || 0) < i + 1) return;
+    const coins = 10 + (hashStr(this.state.active + i) % 3) * 5;
+    this.setPig(p => ({ ...p, route: { ...(p.route || {}), chests: [...((p.route || {}).chests || []), i] } }));
+    this.setState(st => this.award(st, coins)); Sound.fx('yay');
+    this.toastMsg('Schat gevonden! +' + coins + ' coins');
+  }
   // Back from a passed lesson: the companion walks to the next stop and says hello there.
   routeBack(walkTo) {
     try { window.speechSynthesis.cancel(); } catch (e) {}
     clearTimeout(this._walkT);
     if (walkTo != null && walkTo < ROUTE.length) {
       this.setState({ drill: null, routeOpen: true, routeSel: null, routeWalk: { from: walkTo - 1, to: walkTo, key: Date.now() } });
-      this._walkT = setTimeout(() => { const nx = ROUTE[walkTo]; this.setState({ routeWalk: null, routeSel: nx.id }); this.speak(nx.say[0]); }, 2100);
+      this._walkT = setTimeout(() => { const nx = ROUTE[walkTo]; this.setState({ routeWalk: null, routeArrive: nx.id }); Sound.fx('yay'); this.speak(nx.say[0]); }, 3000);
     } else this.setState({ drill: null, routeOpen: true, routeSel: null });
   }
   cardsStart() {
@@ -4481,97 +4568,137 @@ class Component extends DCLogic {
         storyEl = E('div', rootS, topBar, art, panel);
       }
     }
-    // The Leerroute: a winding trail of 16 stops; the companion stands on the next stop to do.
+    // The Leerroute: a road through changing landscapes, a landmark at every stop, and the companion
+    // travelling between them by train, bike, tram, boat or car.
     let routeEl = null;
     if (s.routeOpen) {
-      const W = framed ? 390 : s.vw, GAP = 150, TOP = 110, HGT = TOP + ROUTE.length * GAP + 40;
-      const X = [.5, .74, .6, .3, .24, .46, .72, .7, .44, .26, .32, .58, .76, .62, .34, .5];
+      const W = framed ? 390 : s.vw, GAP = 200, TOP = 150, HGT = TOP + ROUTE.length * GAP + 60;
+      const X = [.62, .36, .66, .34, .64, .36, .66, .38, .62, .34, .66, .36, .64, .38, .64, .5];
       const pos = i => [Math.round(W * X[i % X.length]), TOP + i * GAP];
+      const seg = (a, b) => { const [ax, ay] = pos(a), [bx, by] = pos(b); return `M${ax} ${ay} C${ax} ${ay + GAP * .6} ${bx} ${by - GAP * .6} ${bx} ${by}`; };
       const topPadR = framed ? '54px' : 'max(14px, env(safe-area-inset-top))';
-      const close = () => { clearTimeout(this._walkT); try { window.speechSynthesis.cancel(); } catch (e) {} this.setState({ routeOpen: false, routeSel: null, routeWalk: null, routePass: false }); };
+      const close = () => { clearTimeout(this._walkT); try { window.speechSynthesis.cancel(); } catch (e) {} this.setState({ routeOpen: false, routeSel: null, routeWalk: null, routePass: false, routeArrive: null, routeTip: null }); };
       const glassR = { width: 42, height: 42, flex: 'none', borderRadius: 21, border: 'none', background: 'rgba(255,253,249,.92)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 24px/1 'DM Sans',sans-serif", color: INK, boxShadow: '0 2px 10px rgba(60,40,30,.14)', padding: 0 };
-      const pathD = ROUTE.map((_, i) => { const [x, y] = pos(i); if (!i) return `M${x} ${y}`; const [px, py] = pos(i - 1); return `C${px} ${py + GAP * .55} ${x} ${y - GAP * .55} ${x} ${y}`; }).join(' ');
-      const walked = ROUTE.slice(0, rtAt + 1).map((_, i) => { const [x, y] = pos(i); if (!i) return `M${x} ${y}`; const [px, py] = pos(i - 1); return `C${px} ${py + GAP * .55} ${x} ${y - GAP * .55} ${x} ${y}`; }).join(' ');
-      // Scenery between the stops, different along the way.
-      const deco = (kind, x, y, k) => {
-        const D = (st2, ...kk) => h('div', { key: k + st2.left + '-' + st2.top, style: { position: 'absolute', ...st2 } }, ...kk);
-        const tulip = (dx, c) => D({ left: x + dx, top: y, width: 10, height: 26 }, D({ left: 4, top: 8, width: 2, height: 18, background: 'oklch(0.6 0.12 145)' }), D({ left: 0, top: 0, width: 10, height: 11, borderRadius: '2px 2px 6px 6px', background: c, clipPath: 'polygon(0 0,25% 30%,50% 0,75% 30%,100% 0,100% 100%,0 100%)' }));
-        const tree = dx => D({ left: x + dx, top: y - 8, width: 30, height: 40 }, D({ left: 13, top: 22, width: 4, height: 16, background: 'oklch(0.5 0.06 50)' }), D({ left: 0, top: 0, width: 30, height: 28, borderRadius: '50%', background: 'oklch(0.68 0.12 140)' }));
-        const house = (dx, c) => D({ left: x + dx, top: y - 14, width: 24, height: 40, background: c, clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }, D({ left: 7, top: 18, width: 10, height: 8, background: 'rgba(255,253,249,.8)', borderRadius: 2 }));
-        const wave = dx => D({ left: x + dx, top: y + 10, width: 60, height: 14, borderRadius: 7, background: 'oklch(0.8 0.07 225)', opacity: .8 });
-        const mill = dx => D({ left: x + dx, top: y - 26, width: 34, height: 56 }, D({ left: 11, top: 18, width: 12, height: 36, background: 'oklch(0.5 0.05 40)', clipPath: 'polygon(25% 0,75% 0,100% 100%,0 100%)' }), D({ left: 2, top: 4, width: 30, height: 30, animation: 'fidSpin 6s linear infinite' }, D({ left: 13, top: 0, width: 4, height: 30, background: '#fffdf9', borderRadius: 2 }), D({ left: 0, top: 13, width: 30, height: 4, background: '#fffdf9', borderRadius: 2 })));
-        const animal = (kind2, dx, sc) => D({ left: x + dx, top: y - 10, width: 60, height: 50, transform: `scale(${sc})`, transformOrigin: '0 100%' }, this.friendDraw(kind2));
-        switch (kind) {
-          case 'tulips': return [tulip(0, 'oklch(0.62 0.2 25)'), tulip(14, 'oklch(0.86 0.15 92)'), tulip(28, 'oklch(0.72 0.16 350)'), tulip(42, 'oklch(0.62 0.2 25)')];
-          case 'trees': return [tree(0), tree(26)];
-          case 'houses': return [house(0, 'oklch(0.62 0.12 30)'), house(26, 'oklch(0.55 0.08 250)'), house(52, 'oklch(0.75 0.1 60)')];
-          case 'canal': return [house(0, 'oklch(0.6 0.1 20)'), house(26, 'oklch(0.7 0.09 70)'), wave(-6)];
-          case 'water': return [wave(0), wave(30)];
-          case 'mill': return [mill(0), wave(30)];
-          case 'dunes': return [D({ left: x, top: y, width: 90, height: 26, borderRadius: '50% 50% 0 0', background: 'oklch(0.88 0.07 85)' }), animal('seal', 20, .6)];
-          case 'cows': return [animal('cow', 0, .5), tulip(56, 'oklch(0.86 0.15 92)')];
-          case 'sheep': return [animal('sheep', 0, .6), tree(50)];
-          case 'hills': return [D({ left: x, top: y, width: 100, height: 30, borderRadius: '50% 50% 0 0', background: 'oklch(0.75 0.1 140)' }), tree(30)];
-          case 'plane': return [D({ left: x, top: y - 10, width: 40, height: 40, animation: 'fidBob 3s ease-in-out infinite' }, h('svg', { width: 40, height: 40, viewBox: '0 0 24 24' }, h('path', { d: ROUTE[0].icon, fill: '#fffdf9', stroke: 'oklch(0.6 0.1 220)', strokeWidth: 1.4, strokeLinejoin: 'round' })))];
-        }
-        return [];
-      };
-      const scenery = ROUTE.flatMap((stp, i) => { const [x, y] = pos(i), side = x > W / 2 ? -1 : 1; return deco(stp.deco, side > 0 ? Math.min(W - 110, x + 70) : Math.max(8, x - 150), y + 30, 'dc' + i); });
+      const D = (st2, ...k) => h('div', { style: { position: 'absolute', ...st2 } }, ...k);
+      const allD = ROUTE.map((_, i) => i ? seg(i - 1, i).replace(/^M[^C]+/, '') : `M${pos(0)[0]} ${pos(0)[1]}`).join(' ');
+      const doneD = ROUTE.slice(0, rtAt + 1).map((_, i) => i ? seg(i - 1, i).replace(/^M[^C]+/, '') : `M${pos(0)[0]} ${pos(0)[1]}`).join(' ');
+      // Landscapes: each stop sits in its own kind of land, blending into the next.
+      const LAND = { polder: ['oklch(0.86 0.09 140)', 'repeating-linear-gradient(172deg,transparent 0 34px,oklch(0.78 0.07 225 / .55) 34px 37px)'], city: ['oklch(0.9 0.035 70)', 'radial-gradient(circle,oklch(0.82 0.03 60 / .6) 0 3px,transparent 4px) 0 0/16px 14px'],
+        port: ['oklch(0.82 0.06 230)', 'radial-gradient(ellipse 12px 3px at 50% 50%,rgba(255,255,255,.55) 90%,transparent) 0 0/40px 18px'], beach: ['oklch(0.92 0.06 85)', 'radial-gradient(circle,oklch(0.8 0.06 80 / .5) 0 1.5px,transparent 2px) 0 0/12px 10px'],
+        forest: ['oklch(0.8 0.08 150)', 'radial-gradient(circle,oklch(0.68 0.1 150 / .55) 0 9px,transparent 10px) 0 0/46px 40px'], hills: ['oklch(0.84 0.08 125)', 'radial-gradient(ellipse 60px 22px at 50% 100%,oklch(0.76 0.09 130 / .7) 98%,transparent) 0 0/120px 44px'] };
+      const RL = { schiphol: 'polder', gemeente: 'city', markt: 'city', huisarts: 'polder', utrecht: 'city', school: 'forest', rotterdam: 'port', denhaag: 'city', kinderdijk: 'polder', scheveningen: 'beach', alkmaar: 'polder', zwolle: 'city', eindhoven: 'forest', maastricht: 'hills', rijksmuseum: 'city', groningen: 'polder' };
+      const lands = ROUTE.map((stp, i) => { const [bg, pat] = LAND[RL[stp.id]] || LAND.polder;
+        return D({ left: -40, top: TOP + i * GAP - GAP * .62, width: W + 80, height: GAP + 70, background: `${pat},${bg}`, borderRadius: i ? '50% 50% 0 0 / 46px 46px 0 0' : 0, boxShadow: i ? '0 -6px 14px -8px rgba(60,40,30,.18)' : 'none' }); });
+      // Life on the map: drifting clouds, birds, boats on the water.
+      const life = [...[0, 1, 2, 3, 4, 5, 6, 7].map(k => D({ left: 0, top: 60 + k * 410, width: 120, height: 44, opacity: .9, animation: `fidCloud ${46 + k * 9}s ${-k * 11}s linear infinite`, pointerEvents: 'none' }, D({ left: 0, top: 16, width: 96, height: 26, borderRadius: 13, background: '#fffdf9' }), D({ left: 18, top: 2, width: 40, height: 38, borderRadius: 20, background: '#fffdf9' }), D({ left: 46, top: 8, width: 34, height: 30, borderRadius: 17, background: '#fffdf9' }))),
+        ...[2, 6, 9, 13].map(k => D({ left: 0, top: TOP + k * GAP - 70, width: 40, height: 16, animation: `fidCloud ${22 + k}s ${-k * 3}s linear infinite`, pointerEvents: 'none' }, ...[0, 16].map(x => D({ left: x, top: 4, width: 12, height: 8, borderTop: '2.5px solid #5e534c', borderRadius: '50% 50% 0 0', transform: `rotate(${x ? 14 : -14}deg)` })))),
+        ...ROUTE.map((stp, i) => ['port', 'beach'].includes(RL[stp.id]) || stp.id === 'kinderdijk' || stp.id === 'gemeente' ? D({ left: 10, top: TOP + i * GAP + 54, width: W - 20, height: 30, pointerEvents: 'none' }, D({ left: 0, top: 0, width: 54, height: 30, animation: `fidSwim ${10 + i}s ease-in-out infinite` }, D({ left: 0, top: 14, width: 54, height: 14, borderRadius: '3px 3px 20px 20px', background: 'oklch(0.55 0.12 30)' }), D({ left: 24, top: 0, width: 3, height: 16, background: '#5e534c' }), D({ left: 27, top: 1, width: 16, height: 13, background: '#fffdf9', clipPath: 'polygon(0 0,100% 100%,0 100%)' }))) : null).filter(Boolean)];
+      const side = i => pos(i)[0] > W / 2 ? 'left' : 'right';
+      const landmarks = ROUTE.map((stp, i) => { const [x, y] = pos(i), lx = side(i) === 'left' ? Math.max(4, x - 210) : Math.min(W - 154, x + 62), lock = i > rtAt;
+        return D({ left: lx, top: y - 96, width: 150, height: 120, filter: lock ? 'saturate(.35) opacity(.75)' : 'none', transition: 'filter .6s', pointerEvents: 'none' }, D({ left: 6, top: 112, width: 138, height: 12, borderRadius: '50%', background: 'rgba(60,40,30,.12)' }), ...this.routeLandmark(stp.id)); });
+      // Treasure chests on every other leg: they open once you have travelled past them.
+      const chests = ROUTE.map((_, i) => i % 2 === 1 && i < ROUTE.length - 1 ? i : null).filter(i => i != null).map(i => {
+        const [ax, ay] = pos(i), [bx, by] = pos(i + 1), x = (ax + bx) / 2 + (side(i) === 'left' ? 44 : -44), y = (ay + by) / 2, open = (rtMe.chests || []).includes(i), ready = (rtMe.at || 0) >= i + 1 && !open;
+        return h('button', { key: 'ch' + i, onClick: () => this.routeChest(i), disabled: !ready, 'aria-label': open ? 'Opened chest' : ready ? 'Open the treasure chest' : 'Treasure chest, travel further to open it', style: { position: 'absolute', left: x - 22, top: y - 20, width: 44, height: 40, padding: 0, border: 'none', background: 'none', cursor: ready ? 'pointer' : 'default', zIndex: 2, animation: ready ? 'fidWiggle 1.6s ease-in-out infinite' : 'none', filter: ready || open ? 'none' : 'saturate(.3) opacity(.7)' } },
+          ready ? D({ left: -6, top: -6, width: 56, height: 52, borderRadius: '50%', background: 'radial-gradient(circle,oklch(0.95 0.12 90 / .9),transparent 70%)', animation: 'fidGlow 2s ease-in-out infinite' }) : null,
+          D({ left: 4, top: 16, width: 36, height: 22, borderRadius: '0 0 6px 6px', background: 'oklch(0.55 0.1 50)', boxShadow: 'inset 0 -4px 0 oklch(0.45 0.09 45)' }),
+          D({ left: 2, top: open ? 0 : 6, width: 40, height: 14, borderRadius: '10px 10px 2px 2px', background: 'oklch(0.6 0.1 55)', transform: open ? 'rotate(-24deg)' : 'none', transformOrigin: '0 100%', boxShadow: 'inset 0 0 0 2px oklch(0.75 0.12 85)' }),
+          D({ left: 18, top: 16, width: 8, height: 9, borderRadius: 2, background: 'oklch(0.8 0.13 85)' }),
+          open ? D({ left: 10, top: 10, width: 24, height: 8, borderRadius: 4, background: 'oklch(0.85 0.15 90)', boxShadow: '0 0 10px oklch(0.9 0.15 90)' }) : null);
+      });
+      // Friends along the way with a Dutch tip.
+      const TIPS = { schiphol: ['gull', 'Zeg “hoi” tegen vrienden en “goedemiddag” tegen onbekenden.', 'Say “hoi” to friends and “goedemiddag” to people you don’t know.'], gemeente: ['cat', 'Je BSN krijg je bij de gemeente.', 'You get your BSN at the gemeente.'],
+        markt: ['cow', 'Hoeveel kost het? Zo vraag je de prijs.', '“Hoeveel kost het?” is how you ask the price.'], huisarts: ['stork', 'Koorts? Bel eerst de huisarts.', 'A fever? Call the GP first.'], utrecht: ['pigeon', 'Half negen is 8:30, niet 9:30!', '“Half negen” is 8:30, not 9:30!'],
+        school: ['owl', 'Kunt u dat herhalen? Dat mag je altijd vragen.', '“Can you repeat that?” You may always ask.'], rotterdam: ['gull', 'Op je loonstrook zie je je salaris en de belasting.', 'Your payslip shows your salary and the tax.'], denhaag: ['bee', 'Iedereen is gelijk. Dat staat in artikel 1.', 'Everyone is equal. That is in Article 1.'],
+        kinderdijk: ['frog', 'Een kwart van Nederland ligt onder de zeespiegel.', 'A quarter of the Netherlands lies below sea level.'], scheveningen: ['seal', 'Het waait! Dan is het winderig.', '“Het waait” means it is windy.'], alkmaar: ['cow', 'Eet smakelijk! Dat zeg je voor het eten.', 'Say “eet smakelijk” before a meal.'],
+        zwolle: ['hedgehog', 'Vaak gaat papier in de blauwe container.', 'Paper often goes in the blue bin.'], eindhoven: ['horse', 'Haaientanden betekenen: voorrang geven.', 'Shark teeth mean: give way.'], maastricht: ['duck', 'Gefeliciteerd! Ook met je man of je vrouw.', 'At a birthday you congratulate the family too.'],
+        rijksmuseum: ['deer', 'De Nachtwacht is geschilderd door Rembrandt.', 'The Night Watch was painted by Rembrandt.'], groningen: ['sheep', 'Rustig blijven en goed lezen. Succes!', 'Stay calm and read carefully. Good luck!'] };
+      const friends = ROUTE.map((stp, i) => { const tp = TIPS[stp.id]; if (!tp || i > rtAt + 1) return null; const [x, y] = pos(i), fx = side(i) === 'left' ? Math.min(W - 64, x + 58) : Math.max(4, x - 118), talking = s.routeTip === stp.id;
+        return h('button', { key: 'fr' + stp.id, onClick: () => { clearTimeout(this._tipT); this.setState({ routeTip: talking ? null : stp.id }); if (!talking) { this.speak(tp[1]); this._tipT = setTimeout(() => this.setState({ routeTip: null }), 6000); } }, 'aria-label': 'Tip from a friend at ' + stp.name, style: { position: 'absolute', left: fx, top: y + 26, width: 60, height: 52, padding: 0, border: 'none', background: 'none', cursor: 'pointer', zIndex: talking ? 4 : 2 } },
+          D({ left: 0, top: 0, width: 60, height: 52, animation: 'fidBob 3.2s ease-in-out infinite' }, D({ left: 0, top: 0, width: 60, height: 60, transform: 'scale(.7)', transformOrigin: '50% 100%' }, this.friendDraw(tp[0]))),
+          talking ? D({ left: fx > W / 2 ? -150 : -20, top: -78, width: 210, padding: '9px 12px', borderRadius: 16, background: '#fffdf9', boxShadow: '0 6px 16px rgba(60,40,30,.18)', textAlign: 'left', animation: 'fidPopIn .3s ease-out', boxSizing: 'border-box', pointerEvents: 'none' },
+            h('div', { style: { font: "600 14px/1.35 'Fredoka',sans-serif", color: INK } }, tp[1]), h('div', { style: { font: "italic 400 12px/1.35 'DM Sans',sans-serif", color: '#695d55', marginTop: 2 } }, tp[2])) : !talking && i === rtAt ? D({ left: 38, top: -10, width: 22, height: 22, borderRadius: 11, background: '#fffdf9', boxShadow: '0 2px 6px rgba(60,40,30,.2)', font: "700 14px/22px 'Fredoka',sans-serif", color: INK, textAlign: 'center' }, '!') : null); }).filter(Boolean);
       const partnerAt = Math.min(((partnerPig.route || {}).at) || 0, ROUTE.length - 1);
       const stops = ROUTE.map((stp, i) => { const [x, y] = pos(i), state = i < (rtMe.at || 0) ? 'done' : i === rtAt ? 'open' : 'locked', stars = (rtMe.stars || {})[stp.id] || 0, cur = i === rtAt && !rtDone;
-        return h('button', { key: 'st' + stp.id, onClick: () => { this.setState({ routeSel: stp.id }); if (state !== 'locked') this.speak(stp.say[0]); }, 'aria-label': stp.name + ', ' + stp.city + (state === 'locked' ? ' (locked)' : ''),
-          style: { position: 'absolute', left: x - 50, top: y - 40, width: 100, padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, zIndex: 2 } },
-          h('div', { style: { position: 'relative', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-            cur ? h('div', { style: { position: 'absolute', inset: 4, borderRadius: '50%', background: `oklch(0.75 0.13 ${stp.hue})`, animation: 'fidHalo 1.8s ease-out infinite' } }) : null,
-            this.routeStamp(stp, state, 76)),
-          state === 'done' ? E('span', { font: "600 13px/1 'DM Sans',sans-serif", color: 'oklch(0.62 0.15 75)', letterSpacing: '.08em' }, '★★★'.slice(0, stars) + '☆☆☆'.slice(0, 3 - stars)) : null,
-          E('span', { font: "600 12px/1.2 'Fredoka',sans-serif", color: state === 'locked' ? '#8a7e76' : INK, background: 'rgba(255,253,249,.92)', padding: '3px 8px', borderRadius: 9, whiteSpace: 'nowrap', boxShadow: '0 1px 4px rgba(60,40,30,.1)' }, (i + 1) + '. ' + stp.name),
-          cur ? E('span', { font: "600 12px 'DM Sans',sans-serif", color: '#fffdf9', background: `oklch(0.55 0.15 ${stp.hue})`, padding: '4px 10px', borderRadius: 10, animation: 'fidBob 1.6s ease-in-out infinite' }, i ? 'Start' : 'Begin here') : null);
+        return h('button', { key: 'st' + stp.id, onClick: () => { this.setState({ routeSel: stp.id, routeTip: null }); if (state !== 'locked') this.speak(stp.say[0]); }, 'aria-label': stp.name + ', ' + stp.city + (state === 'locked' ? ' (locked)' : ''),
+          style: { position: 'absolute', left: x - 60, top: y - 46, width: 120, padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, zIndex: 3 } },
+          h('div', { style: { position: 'relative', width: 92, height: 92, animation: cur ? 'fidBob 1.8s ease-in-out infinite' : 'none' } },
+            cur ? D({ left: 0, top: 0, width: 92, height: 92, borderRadius: '50%', background: `oklch(0.8 0.12 ${stp.hue})`, animation: 'fidHalo 1.8s ease-out infinite' }) : null,
+            D({ left: 4, top: 4, width: 84, height: 84, borderRadius: '50%', background: state === 'locked' ? 'oklch(0.9 0.01 80)' : '#fffdf9', boxShadow: `0 7px 0 ${state === 'locked' ? 'oklch(0.75 0.01 80)' : `oklch(0.5 0.13 ${stp.hue})`}, 0 12px 18px rgba(60,40,30,.22)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }, this.routeStamp(stp, state, 70)),
+            state === 'done' ? D({ left: 14, top: 78, width: 64, height: 20, borderRadius: 10, background: `oklch(0.5 0.13 ${stp.hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, boxShadow: '0 2px 4px rgba(0,0,0,.15)' }, ...[0, 1, 2].map(k => h('span', { key: k, style: { font: "700 13px/1 'DM Sans',sans-serif", color: k < stars ? 'oklch(0.9 0.15 90)' : 'rgba(255,253,249,.35)' } }, '★'))) : null),
+          E('span', { font: "600 13px/1.2 'Fredoka',sans-serif", color: state === 'locked' ? '#7a6e66' : INK, background: 'rgba(255,253,249,.95)', padding: '4px 10px', borderRadius: 10, whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(60,40,30,.12)', marginTop: state === 'done' ? 8 : 4 }, stp.city),
+          cur ? E('span', { font: "700 12px 'DM Sans',sans-serif", letterSpacing: '.06em', color: '#fffdf9', background: `oklch(0.52 0.15 ${stp.hue})`, padding: '5px 12px', borderRadius: 12, boxShadow: `0 3px 0 oklch(0.42 0.13 ${stp.hue})` }, i ? 'START' : 'BEGIN HIER') : null);
       });
-      // The companion stands beside its stop; after a passed lesson it walks there from the previous one.
-      const wk = s.routeWalk, at2 = wk ? wk.to : rtAt, [cx, cy] = pos(at2), [fx, fy] = wk ? pos(wk.from) : [cx, cy];
-      const me = h('div', { key: 'me' + (wk ? wk.key : 'still'), style: { position: 'absolute', left: cx - 92, top: cy - 70, width: 70, height: 70, zIndex: 3, pointerEvents: 'none', '--wx': (fx - cx) + 'px', '--wy': (fy - cy) + 'px', animation: wk ? 'fidWalk 1.9s cubic-bezier(.4,0,.3,1) both' : 'none' } },
-        h('div', { style: { animation: wk ? 'fidStep .38s ease-in-out infinite' : 'fidBob 3s ease-in-out infinite' } }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .42 })));
+      // The companion: beside its stop, or on the road with this leg's vehicle.
+      const wk = s.routeWalk, at2 = wk ? wk.to : rtAt, [cx, cy] = pos(at2), RIDE = [null, 'train', 'bike', 'bike', 'train', 'bike', 'train', 'tram', 'boat', 'tram', 'train', 'train', 'car', 'train', 'train', 'train'];
+      const veh = wk ? this.routeVehicle(RIDE[wk.to] || 'bike') : null, pigEl = this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: veh && veh.clip ? .3 : .38 });
+      const me = wk ? h('div', { key: 'ride' + wk.key, style: { position: 'absolute', left: 0, top: 0, width: 80, height: 70, zIndex: 5, pointerEvents: 'none', offsetPath: `path('${seg(wk.from, wk.to)}')`, offsetRotate: '0deg', offsetAnchor: '50% 85%', animation: 'fidRide 2.8s cubic-bezier(.45,0,.35,1) both' } },
+          h('div', { style: { position: 'absolute', inset: 0, animation: 'fidStep .5s ease-in-out infinite' } }, ...veh.back, D({ left: veh.clip ? 22 : 8, top: veh.clip ? 18 - veh.lift : -14 - veh.lift, width: 60, height: 60, overflow: veh.clip ? 'hidden' : 'visible' }, pigEl), ...veh.front),
+          h('div', { style: { position: 'absolute', left: 10, top: -34, padding: '3px 9px', borderRadius: 10, background: '#fffdf9', font: "600 12px 'DM Sans',sans-serif", color: INK, boxShadow: '0 2px 6px rgba(60,40,30,.2)', whiteSpace: 'nowrap' } }, ({ train: 'Met de trein', bike: 'Met de fiets', tram: 'Met de tram', boat: 'Met de boot', car: 'Met de auto' })[RIDE[wk.to] || 'bike'] + ' naar ' + ROUTE[wk.to].city))
+        : h('div', { key: 'me', style: { position: 'absolute', left: side(at2) === 'left' ? cx + 34 : cx - 104, top: cy - 64, width: 70, height: 70, zIndex: 4, pointerEvents: 'none' } }, h('div', { style: { animation: 'fidBob 3s ease-in-out infinite' } }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .44 })));
       const [px2, py2] = pos(partnerAt);
-      const partnerMark = partnerAt === rtAt && !wk ? null : h('div', { key: 'pm', title: partner.name, style: { position: 'absolute', left: px2 + 34, top: py2 - 46, width: 30, height: 30, borderRadius: 15, background: C[partner.id] || '#ddd', boxShadow: '0 0 0 3px #fffdf9, 0 2px 6px rgba(60,40,30,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "600 14px 'Fredoka',sans-serif", color: INK, zIndex: 3 } }, (partner.name || '?')[0]);
+      const partnerMark = partnerAt === at2 ? null : D({ left: px2 + (side(partnerAt) === 'left' ? 40 : -76), top: py2 - 60, width: 36, height: 36, borderRadius: 18, background: C[partner.id] || '#ddd', boxShadow: '0 0 0 3px #fffdf9, 0 3px 8px rgba(60,40,30,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "600 16px 'Fredoka',sans-serif", color: INK, zIndex: 4 }, (partner.name || '?')[0]);
       const sel = s.routeSel && ROUTE.find(x => x.id === s.routeSel), selI = sel ? ROUTE.indexOf(sel) : -1, selState = !sel ? null : selI < (rtMe.at || 0) ? 'done' : selI === rtAt ? 'open' : 'locked';
-      const sheet = !sel ? null : h('div', { key: 'sheet' + sel.id, style: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 6, background: '#fffdf9', borderRadius: '28px 28px 0 0', padding: '18px 20px calc(18px + env(safe-area-inset-bottom))', boxShadow: '0 -12px 30px rgba(60,40,30,.15)', display: 'flex', flexDirection: 'column', gap: 12, animation: 'sheetUp .3s cubic-bezier(.2,.8,.2,1)' } },
+      const sheet = !sel ? null : h('div', { key: 'sheet' + sel.id, style: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 8, background: '#fffdf9', borderRadius: '28px 28px 0 0', padding: '18px 20px calc(18px + env(safe-area-inset-bottom))', boxShadow: '0 -12px 30px rgba(60,40,30,.18)', display: 'flex', flexDirection: 'column', gap: 12, animation: 'sheetUp .3s cubic-bezier(.2,.8,.2,1)' } },
         E('div', { display: 'flex', alignItems: 'center', gap: 14 }, this.routeStamp(sel, selState, 72),
           E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
             E('span', { font: "600 12px 'DM Sans',sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', color: `oklch(0.5 0.13 ${sel.hue})` }, 'Stop ' + (selI + 1) + ' · ' + sel.topic),
             E('span', { font: "600 22px/1.15 'Fredoka',sans-serif", color: INK }, sel.name), E('span', { font: "400 14px 'DM Sans',sans-serif", color: '#695d55' }, sel.city)),
           h('button', { onClick: () => this.setState({ routeSel: null }), 'aria-label': 'Close the stop', style: { ...glassR, background: '#f6f1ea', boxShadow: 'none' } }, '×')),
-        selState === 'locked' ? E('span', { font: "400 14px/1.5 'DM Sans',sans-serif", color: '#4a3f38' }, 'Locked. Pass stop ' + (rtAt + 1) + ', ' + ROUTE[rtAt].name + ', to travel on.')
+        selState === 'locked' ? E('span', { font: "400 14px/1.5 'DM Sans',sans-serif", color: '#4a3f38' }, 'Locked. Pass stop ' + (rtAt + 1) + ', ' + ROUTE[rtAt].city + ', to travel on.')
           : h('button', { onClick: () => this.speak(sel.say[0]), style: { display: 'flex', alignItems: 'flex-end', gap: 8, padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' } },
             E('div', { flex: 'none' }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .32 })),
             E('div', { flex: 1, background: `oklch(0.96 0.03 ${sel.hue})`, borderRadius: '18px 18px 18px 4px', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 2 },
               E('span', { font: "600 16px/1.35 'Fredoka',sans-serif", color: INK }, '“' + sel.say[0] + '”'), E('span', { font: "italic 400 13px 'DM Sans',sans-serif", color: '#695d55' }, sel.say[1]))),
         selState === 'done' ? E('span', { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#4a3f38', padding: '8px 12px', borderRadius: 14, background: '#f6f1ea' }, 'Souvenir: ' + sel.fact) : null,
-        selState === 'locked' ? null : h('button', { onClick: () => { this.setState({ routeSel: null }); this.drillStart('route', sel.id); }, style: { height: 52, borderRadius: 16, border: 'none', cursor: 'pointer', font: "600 16px 'DM Sans',sans-serif", background: INK, color: '#fffdf9' } },
+        selState === 'locked' ? null : h('button', { onClick: () => { this.setState({ routeSel: null }); this.drillStart('route', sel.id); }, style: { height: 54, borderRadius: 16, border: 'none', cursor: 'pointer', font: "600 16px 'DM Sans',sans-serif", background: `oklch(0.5 0.14 ${sel.hue})`, color: '#fffdf9', boxShadow: `0 4px 0 oklch(0.4 0.12 ${sel.hue})` } },
           selState === 'done' ? 'Play again (' + ((rtMe.stars || {})[sel.id] || 0) + '/3 stars)' : sel.final ? 'Take the final exam · 16 questions' : 'Start the lesson · 8 questions'));
-      const passEl = !s.routePass ? null : h('div', { key: 'pass', style: { position: 'absolute', inset: 0, zIndex: 7, background: 'linear-gradient(180deg,oklch(0.42 0.09 255),oklch(0.32 0.08 260))', paddingTop: topPadR, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', animation: 'fadeIn .25s' } },
+      // Arriving somewhere new: a postcard of the place.
+      const arr = s.routeArrive && ROUTE.find(x => x.id === s.routeArrive);
+      const postcard = !arr ? null : h('div', { key: 'pc' + arr.id, style: { position: 'absolute', inset: 0, zIndex: 9, background: 'rgba(42,35,32,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fadeIn .25s' } },
+        h('div', { style: { width: '100%', maxWidth: 360, background: '#fffdf9', borderRadius: 26, padding: 12, boxShadow: '0 24px 60px rgba(0,0,0,.3)', transform: 'rotate(-1.5deg)', animation: 'fidPopIn .45s ease-out' } },
+          h('div', { style: { position: 'relative', height: 190, borderRadius: 18, overflow: 'hidden', background: `linear-gradient(180deg,oklch(0.86 0.07 ${arr.hue + 200}),oklch(0.95 0.04 ${arr.hue + 180}) 65%,${(LAND[RL[arr.id]] || LAND.polder)[0]} 65%)` } },
+            D({ left: '50%', top: 34, width: 150, height: 120, transform: 'translateX(-50%) scale(1.25)', transformOrigin: '50% 100%' }, ...this.routeLandmark(arr.id)),
+            D({ left: 14, top: 14, padding: '5px 12px', borderRadius: 12, background: 'rgba(255,253,249,.9)', font: "600 13px 'Fredoka',sans-serif", color: `oklch(0.45 0.13 ${arr.hue})` }, 'Groeten uit ' + arr.city + '!'),
+            D({ right: 12, top: 12 }, this.routeStamp(arr, 'open', 54))),
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 6px 6px' } },
+            h('span', { style: { font: "600 24px/1.15 'Fredoka',sans-serif", color: INK } }, 'Aangekomen in ' + arr.city + '!'),
+            h('button', { onClick: () => this.speak(arr.say[0]), style: { display: 'flex', alignItems: 'flex-end', gap: 8, padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' } },
+              h('div', { style: { flex: 'none' } }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .3 })),
+              h('div', { style: { flex: 1, background: `oklch(0.96 0.03 ${arr.hue})`, borderRadius: '16px 16px 16px 4px', padding: '9px 12px' } }, h('div', { style: { font: "600 15px/1.35 'Fredoka',sans-serif", color: INK } }, '“' + arr.say[0] + '”'), h('div', { style: { font: "italic 400 12px 'DM Sans',sans-serif", color: '#695d55' } }, arr.say[1]))),
+            h('span', { style: { font: "500 13px 'DM Sans',sans-serif", color: '#5e534c' } }, 'Next lesson: ' + arr.topic + (arr.final ? ' · 16 questions' : ' · 8 questions')),
+            h('div', { style: { display: 'flex', gap: 8, paddingTop: 4 } },
+              h('button', { onClick: () => this.setState({ routeArrive: null }), style: { flex: 1, height: 50, borderRadius: 15, border: '1px solid #e3d9cd', background: '#fffdf9', cursor: 'pointer', font: "600 15px 'DM Sans',sans-serif", color: INK } }, 'Look around'),
+              h('button', { onClick: () => { this.setState({ routeArrive: null }); this.drillStart('route', arr.id); }, style: { flex: 1.4, height: 50, borderRadius: 15, border: 'none', background: `oklch(0.5 0.14 ${arr.hue})`, color: '#fffdf9', cursor: 'pointer', font: "600 15px 'DM Sans',sans-serif", boxShadow: `0 4px 0 oklch(0.4 0.12 ${arr.hue})` } }, 'Start the lesson')))));
+      const passEl = !s.routePass ? null : h('div', { key: 'pass', style: { position: 'absolute', inset: 0, zIndex: 9, background: 'linear-gradient(180deg,oklch(0.42 0.09 255),oklch(0.32 0.08 260))', paddingTop: topPadR, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', animation: 'fadeIn .25s' } },
         E('div', { display: 'flex', alignItems: 'center', gap: 12, padding: '6px 20px 14px' },
-          E('div', { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 24px/1.1 'Fredoka',sans-serif", color: 'oklch(0.88 0.1 85)' }, 'Paspoort'), E('span', { font: "400 13px 'DM Sans',sans-serif", color: 'rgba(255,253,249,.8)' }, (rtMe.at || 0) + ' of ' + ROUTE.length + ' stamps · ' + (myPig.name || ''))),
+          E('div', { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 24px/1.1 'Fredoka',sans-serif", color: 'oklch(0.88 0.1 85)' }, 'Paspoort'), E('span', { font: "400 13px 'DM Sans',sans-serif", color: 'rgba(255,253,249,.8)' }, (rtMe.at || 0) + ' of ' + ROUTE.length + ' stamps · ' + (rtMe.chests || []).length + ' chests opened')),
           h('button', { onClick: () => this.setState({ routePass: false }), 'aria-label': 'Close the passport', style: glassR }, '×')),
         E('div', { flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 16px 24px' },
-          E('div', { background: 'oklch(0.96 0.03 85)', borderRadius: 18, padding: '16px 10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px 4px', boxShadow: 'inset 0 0 0 2px oklch(0.88 0.05 85)' },
+          E('div', { background: 'oklch(0.96 0.03 85)', borderRadius: 18, padding: '16px 10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px 4px', boxShadow: 'inset 0 0 0 2px oklch(0.88 0.05 85)', backgroundImage: 'repeating-linear-gradient(0deg,transparent 0 28px,oklch(0.9 0.03 85) 28px 29px)' },
             ...ROUTE.map((stp, i) => { const got = i < (rtMe.at || 0), w2 = (rtMe.when || {})[stp.id];
-              return E('div', { key: 'ps' + stp.id, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, textAlign: 'center', opacity: got ? 1 : .45 },
+              return E('div', { key: 'ps' + stp.id, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, textAlign: 'center', opacity: got ? 1 : .4 },
                 this.routeStamp(stp, got ? 'done' : 'locked', 58), E('span', { font: "600 11px/1.2 'Fredoka',sans-serif", color: INK }, stp.city), w2 ? E('span', { font: "400 10px 'DM Sans',sans-serif", color: '#695d55' }, fmt(w2)) : null); }))));
-      routeEl = h('div', { style: { position: 'absolute', inset: 0, zIndex: 62, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'linear-gradient(180deg,oklch(0.93 0.05 150),oklch(0.95 0.04 110) 50%,oklch(0.94 0.04 85))', animation: 'fadeIn .25s' } },
-        h('div', { style: { position: 'absolute', left: 0, right: 0, top: 0, zIndex: 5, padding: '0 16px 14px', paddingTop: topPadR, display: 'flex', alignItems: 'center', gap: 10, background: 'linear-gradient(180deg,rgba(246,241,234,.96) 60%,rgba(246,241,234,0))' } },
-          E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }, E('span', { font: "600 24px/1.1 'Fredoka',sans-serif", color: INK }, 'Leerroute'),
-            E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#5e534c' }, rtDone ? 'All 16 stops done. Geslaagd!' : 'Stop ' + (rtAt + 1) + ' of ' + ROUTE.length + ' · ' + ROUTE[rtAt].name + ', ' + ROUTE[rtAt].city)),
-          h('button', { onClick: () => this.setState({ routePass: true }), style: { height: 42, padding: '0 14px', borderRadius: 21, border: 'none', cursor: 'pointer', background: 'oklch(0.42 0.09 255)', color: 'oklch(0.9 0.1 85)', font: "600 14px 'Fredoka',sans-serif", flex: 'none' } }, 'Paspoort ' + (rtMe.at || 0)),
-          h('button', { onClick: close, 'aria-label': 'Close the Leerroute', style: glassR }, '×')),
-        h('div', { className: 'fid-scroll', ref: el => { if (el && el._rt !== at2) { el._rt = at2; el.scrollTop = Math.max(0, pos(at2)[1] - el.clientHeight * .42); } }, style: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', paddingTop: 90 } },
-          h('div', { style: { position: 'relative', width: W, height: HGT, margin: '0 auto' } },
-            h('svg', { width: W, height: HGT, style: { position: 'absolute', left: 0, top: 0 }, 'aria-hidden': true },
-              h('path', { d: pathD, fill: 'none', stroke: 'rgba(255,253,249,.9)', strokeWidth: 22, strokeLinecap: 'round' }),
-              h('path', { d: pathD, fill: 'none', stroke: 'oklch(0.82 0.05 75)', strokeWidth: 4, strokeDasharray: '2 12', strokeLinecap: 'round' }),
-              h('path', { d: walked, fill: 'none', stroke: 'oklch(0.66 0.15 25)', strokeWidth: 5, strokeDasharray: '2 12', strokeLinecap: 'round' })),
-            ...scenery, ...stops, partnerMark, me)),
-        sheet, passEl);
+      const pct = Math.round((rtMe.at || 0) / ROUTE.length * 100);
+      routeEl = h('div', { style: { position: 'absolute', inset: 0, zIndex: 62, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'linear-gradient(180deg,oklch(0.86 0.07 230),oklch(0.93 0.04 200) 140px,oklch(0.86 0.09 140) 141px)', animation: 'fadeIn .25s' } },
+        h('div', { style: { position: 'absolute', left: 0, right: 0, top: 0, zIndex: 7, padding: '0 16px 12px', paddingTop: topPadR, display: 'flex', flexDirection: 'column', gap: 10, background: 'linear-gradient(180deg,rgba(255,253,249,.97) 70%,rgba(255,253,249,0))' } },
+          E('div', { display: 'flex', alignItems: 'center', gap: 10 },
+            E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }, E('span', { font: "600 24px/1.1 'Fredoka',sans-serif", color: INK }, 'Leerroute'),
+              E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#5e534c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, rtDone ? 'All 16 stops. Geslaagd!' : 'Stop ' + (rtAt + 1) + ' of ' + ROUTE.length + ' · ' + ROUTE[rtAt].city + ' · ' + ROUTE[rtAt].topic)),
+            h('button', { onClick: () => this.setState({ routePass: true }), style: { height: 42, padding: '0 14px', borderRadius: 21, border: 'none', cursor: 'pointer', background: 'oklch(0.42 0.09 255)', color: 'oklch(0.9 0.1 85)', font: "600 14px 'Fredoka',sans-serif", flex: 'none', boxShadow: '0 3px 0 oklch(0.32 0.08 255)' } }, 'Paspoort ' + (rtMe.at || 0)),
+            h('button', { onClick: close, 'aria-label': 'Close the Leerroute', style: glassR }, '×')),
+          E('div', { height: 10, borderRadius: 5, background: 'rgba(60,40,30,.1)', overflow: 'hidden' }, E('div', { width: Math.max(4, pct) + '%', height: '100%', borderRadius: 5, background: 'linear-gradient(90deg,oklch(0.7 0.15 25),oklch(0.75 0.15 75),oklch(0.65 0.15 145))', transition: 'width .8s' }))),
+        h('div', { className: 'fid-scroll', ref: el => { if (el && el._rt !== at2) { el._rt = at2; el.scrollTop = Math.max(0, pos(at2)[1] - el.clientHeight * .45); } }, style: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' } },
+          h('div', { style: { position: 'relative', width: W, height: HGT, margin: '0 auto', overflow: 'hidden' } },
+            ...lands, ...life, ...landmarks,
+            h('svg', { width: W, height: HGT, style: { position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }, 'aria-hidden': true },
+              h('path', { d: allD, fill: 'none', stroke: 'oklch(0.62 0.05 60)', strokeWidth: 34, strokeLinecap: 'round' }),
+              h('path', { d: allD, fill: 'none', stroke: 'oklch(0.8 0.04 75)', strokeWidth: 27, strokeLinecap: 'round' }),
+              h('path', { d: allD, fill: 'none', stroke: 'oklch(0.86 0.035 75)', strokeWidth: 20, strokeLinecap: 'butt', strokeDasharray: '9 4' }),
+              h('path', { d: doneD, fill: 'none', stroke: 'oklch(0.8 0.13 80)', strokeWidth: 9, strokeLinecap: 'round', strokeDasharray: '1 15', opacity: .95 }),
+              ...ROUTE.slice(1).map((_, k) => { const [x, y] = pos(k + 1); return h('text', { key: 'km' + k, x: x, y: y - 110, textAnchor: 'middle', style: { font: "600 10px 'DM Sans',sans-serif", fill: 'rgba(60,40,30,.0)' } }, ''); })),
+            ...chests, ...friends, ...stops, partnerMark, me)),
+        sheet, postcard, passEl);
     }
     // "5 minutes of Dutch" and the practice exam: one full-screen drill.
     let drillEl = null;
@@ -4921,7 +5048,7 @@ input,button,select{font-family:inherit;color:inherit}
 @keyframes fidGroove{0%,100%{transform:rotate(-5deg) translateY(0)}25%{transform:rotate(0) translateY(-6px)}50%{transform:rotate(5deg) translateY(0)}75%{transform:rotate(0) translateY(-6px)}}
 @keyframes fidRain2{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),110vh) rotate(var(--r))}}
 @keyframes fidDrop{from{opacity:0;transform:translateY(-40px) scale(.96)}to{opacity:1;transform:none}}
-@keyframes fidWalk{from{transform:translate(var(--wx),var(--wy))}to{transform:none}}@keyframes fidStep{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}@keyframes fidHalo{0%{transform:scale(.85);opacity:.7}100%{transform:scale(1.5);opacity:0}}@keyframes fidTabIn{from{opacity:0;transform:translateX(var(--tabDx,0px))}to{opacity:1;transform:none}}
+@keyframes fidRide{from{offset-distance:0%}to{offset-distance:100%}}@keyframes fidWalk{from{transform:translate(var(--wx),var(--wy))}to{transform:none}}@keyframes fidStep{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}@keyframes fidHalo{0%{transform:scale(.85);opacity:.7}100%{transform:scale(1.5);opacity:0}}@keyframes fidTabIn{from{opacity:0;transform:translateX(var(--tabDx,0px))}to{opacity:1;transform:none}}
 @keyframes fidKen{from{transform:scale(1.06)}to{transform:scale(1)}}
 @keyframes fidStoryTalk{0%,100%{transform:translateY(0) scale(1)}30%{transform:translateY(-6px) scale(1.02,.98)}60%{transform:translateY(0) scale(.99,1.02)}}
 @keyframes fidTear{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(22px)}}
