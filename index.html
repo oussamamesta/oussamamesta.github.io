@@ -751,13 +751,15 @@ const Sound = {
     return (this.el = a);
   },
   _go(a) { const p = a.play(); if (p && p.catch) p.catch(() => {}); },
-  start() { if (!this.music || this.hushed || (typeof document !== 'undefined' && document.hidden)) return; const a = this.audio(); if (!a.getAttribute('src')) a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; this.started = true; this._go(a); this.fade(this.vol); },
+  start() { if (!this.music || this.hushed || this.focus || (typeof document !== 'undefined' && document.hidden)) return; const a = this.audio(); if (!a.getAttribute('src')) a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; this.started = true; this._go(a); this.fade(this.vol); },
   stop() { if (this.el) this.fade(0, () => this.el.pause()); },
-  next() { this.i = (this.i + 1) % TRACKS.length; const a = this.audio(); a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; if (this.music && this.started && !this.hushed) { this._go(a); this.fade(this.vol); } if (this.onTrack) this.onTrack(); },
+  next() { this.i = (this.i + 1) % TRACKS.length; const a = this.audio(); a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; if (this.music && this.started && !this.hushed && !this.focus) { this._go(a); this.fade(this.vol); } if (this.onTrack) this.onTrack(); },
   fade(to, done) {
     const a = this.el; if (!a) return; clearInterval(this._f);
     this._f = setInterval(() => { const d = to - a.volume; if (Math.abs(d) <= .04) { a.volume = to; clearInterval(this._f); if (done) done(); } else a.volume = Math.max(0, Math.min(1, a.volume + Math.sign(d) * .04)); }, 40);
   },
+  // Quiet while a quiz or lesson is running; the music comes back with the results.
+  setFocus(on) { if (this.focus === on) return; this.focus = on; if (on) { if (this.el && !this.el.paused) this.fade(0, () => this.el.pause()); } else if (this.started && !this.userPaused) this.start(); },
   setMusic(on) { this.music = on; if (on) { this.userPaused = false; this.start(); } else this.stop(); },
   isPlaying() { return !!this.el && !this.el.paused; },
   play() { this.userPaused = false; this.started = true; this.start(); },
@@ -1185,6 +1187,7 @@ class Component extends DCLogic {
   }
   setPig(fn, pid) { this.setState(st => { const id = pid || st.active; return { pigs: { ...st.pigs, [id]: fn(st.pigs[id]) } }; }); }
   componentDidUpdate() {
+    { const s0 = this.state, st0 = s0.story; Sound.setFocus(!!(s0.drill && !s0.drill.done) || !!(st0 && st0.id && (st0.phase === 'speak' || st0.phase === 'quiz'))); }
     if (this.state.game && !this.state.game.over) return;
     if (this.syncMirror()) return;
     this.followPig(); this.askName();
@@ -4752,10 +4755,23 @@ class Component extends DCLogic {
             E('span', { font: "600 46px/1 'Fredoka',sans-serif", color: INK, animation: 'fidPopIn .5s ease-out' }, dr.right + '/' + q),
             E('span', { font: "600 18px 'Fredoka',sans-serif", color: pct >= .75 ? C.greenInk : 'oklch(0.48 0.12 45)' }, pct >= .9 ? (mock ? 'Uitstekend! You are ready.' : 'Uitstekend!') : pct >= .75 ? (mock ? 'Goed! Almost exam-ready.' : 'Goed zo!') : pct >= .5 ? 'On your way. Keep practising.' : 'A good start. Practise a little every day.'),
             E('span', { font: "400 13px 'DM Sans',sans-serif", color: '#695d55' }, (dr.over ? 'Time ran out. ' : '') + 'Best score so far: ' + Math.max(best, dr.right) + '/' + q)),
-          ...(shown.length > 1 ? shown.map(k => { const [r, n] = dr.per[k], f2 = r / n;
-            return E('div', { display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 16px', borderRadius: 18, background: '#fffdf9', flex: 'none' },
-              E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }, E('span', { font: "600 16px 'Fredoka',sans-serif", color: INK }, k + ' · ' + EN[k]), E('span', { font: "600 14px 'DM Sans',sans-serif", color: f2 >= .75 ? C.greenInk : 'oklch(0.48 0.12 45)' }, r + '/' + n)),
-              E('div', { height: 8, borderRadius: 4, background: '#efe7dc', overflow: 'hidden' }, E('div', { width: Math.round(f2 * 100) + '%', height: '100%', borderRadius: 4, background: f2 >= .75 ? C.green : 'oklch(0.75 0.13 60)', transition: 'width .6s' }))); }) : []),
+          // Each part is a button: tap it to see every question from that part, your answer and the right one.
+          ...shown.map(k => { const [r, n] = dr.per[k], f2 = r / n, open = dr.openSkill === k, items = (dr.log || []).filter(x => x.st.skill === k);
+            return E('div', { key: 'sk' + k, display: 'flex', flexDirection: 'column', borderRadius: 18, background: '#fffdf9', flex: 'none', overflow: 'hidden', boxShadow: open ? `0 0 0 2px oklch(0.8 0.08 ${hue})` : 'none' },
+              h('button', { onClick: () => this.setState({ drill: { ...this.state.drill, openSkill: open ? null : k } }), 'aria-expanded': open, 'aria-label': k + ' ' + r + ' of ' + n + ', show the questions', style: { display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 16px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' } },
+                E('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, width: '100%' }, E('span', { font: "600 16px 'Fredoka',sans-serif", color: INK }, k + ' · ' + EN[k]),
+                  E('span', { display: 'flex', alignItems: 'baseline', gap: 8 }, E('span', { font: "600 14px 'DM Sans',sans-serif", color: f2 >= .75 ? C.greenInk : 'oklch(0.48 0.12 45)' }, r + '/' + n), E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, open ? 'Hide ▴' : 'See ▾'))),
+                E('div', { height: 8, borderRadius: 4, background: '#efe7dc', overflow: 'hidden', width: '100%' }, E('div', { width: Math.round(f2 * 100) + '%', height: '100%', borderRadius: 4, background: f2 >= .75 ? C.green : 'oklch(0.75 0.13 60)', transition: 'width .6s' }))),
+              open ? E('div', { display: 'flex', flexDirection: 'column', gap: 8, padding: '0 12px 12px', animation: 'fidIn .25s ease-out' },
+                ...items.map(({ st: w, pick }, qi) => { const ok = pick === w.a;
+                  return E('div', { key: 'sq' + qi, display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px', borderRadius: 14, background: ok ? 'oklch(0.96 0.04 150)' : 'oklch(0.96 0.03 30)' },
+                    E('span', { font: "600 11px 'DM Sans',sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', color: ok ? C.greenInk : 'oklch(0.5 0.14 25)' }, 'Question ' + (qi + 1) + (ok ? ' · right' : ' · wrong')),
+                    w.text ? E('span', { font: "italic 400 13px/1.4 'DM Sans',sans-serif", color: '#695d55' }, '“' + w.text + '”') : null,
+                    w.say ? h('button', { onClick: () => this.speak(w.say), style: { display: 'flex', alignItems: 'center', gap: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', font: "italic 400 13px/1.4 'DM Sans',sans-serif", color: '#695d55' } }, '▶ “' + w.say + '”') : null,
+                    E('span', { font: "600 15px/1.35 'DM Sans',sans-serif", color: INK }, w.fill ? w.q.replace('___', '…') : w.q),
+                    E('span', { font: "500 14px/1.35 'DM Sans',sans-serif", color: ok ? C.greenInk : 'oklch(0.5 0.14 25)' }, (ok ? '✓ ' : '✗ ') + 'Your answer: ' + w.options[pick]),
+                    ok ? null : E('span', { font: "600 14px/1.35 'DM Sans',sans-serif", color: C.greenInk }, '✓ Right answer: ' + w.options[w.a]),
+                    w.why ? E('span', { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#4a3f38' }, w.why) : null); })) : null); }),
           mock && weak.length ? E('span', { font: "400 14px/1.5 'DM Sans',sans-serif", color: '#4a3f38', textWrap: 'pretty' }, 'Practise more: ' + weak.map(k => EN[k].toLowerCase()).join(', ') + '. The Quiz tab under Learn has rounds for each part.') : null,
           wrong.length ? E('span', { font: "600 13px 'DM Sans',sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', color: '#8a7e76', paddingTop: 6 }, 'Learn from your mistakes · ' + wrong.length)
             : E('span', { font: "500 15px 'DM Sans',sans-serif", color: C.greenInk, textAlign: 'center' }, 'No mistakes. Perfect round!'),
