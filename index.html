@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192-v2.png">
 <link rel="apple-touch-icon" href="apple-touch-icon-v2.png">
-<style>html,body{margin:0;background:#f6f1ea;overscroll-behavior:none}</style>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#f6f1ea;overscroll-behavior:none}</style>
 </head>
 <body>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -2308,10 +2308,10 @@ class Component extends DCLogic {
     const R = (x, y, w, hh, c, ex) => d({ left: x, top: y, width: w, height: hh, background: c, ...(ex || {}) }), INKc = INK, CREAM = '#fffdf9';
     const wheel = (x, y, r) => d({ left: x, top: y, width: r, height: r, borderRadius: '50%', border: '3px solid ' + INKc, boxSizing: 'border-box', background: 'rgba(255,253,249,.4)', animation: 'fidSpin .6s linear infinite' }, R(r / 2 - 4, 0, 2, r - 6, INKc));
     switch (kind) {
-      case 'bike': return { back: [], front: [wheel(0, 34, 26), wheel(46, 34, 26), R(12, 40, 36, 3, 'oklch(0.6 0.16 25)', { transform: 'rotate(-18deg)', transformOrigin: '0 0' }), R(30, 30, 3, 20, 'oklch(0.6 0.16 25)', { transform: 'rotate(18deg)' }), R(52, 26, 3, 22, 'oklch(0.6 0.16 25)', { transform: 'rotate(-14deg)' }), R(48, 24, 14, 3, INKc, { borderRadius: 2 })], lift: 18 };
-      case 'train': return { back: [R(-14, 18, 100, 40, 'oklch(0.86 0.16 92)', { borderRadius: '22px 8px 8px 8px', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,.08)' })], front: [R(-14, 44, 100, 8, 'oklch(0.48 0.12 260)'), R(-10, 26, 20, 14, 'oklch(0.4 0.05 250)', { borderRadius: '10px 3px 3px 3px' }), wheel(4, 52, 14), wheel(60, 52, 14), R(18, 22, 50, 26, 'transparent', { boxShadow: '0 0 0 4px oklch(0.86 0.16 92)', borderRadius: 6 })], lift: 0, clip: true };
-      case 'tram': return { back: [R(-10, 16, 92, 42, CREAM, { borderRadius: 10, boxShadow: 'inset 0 -14px 0 oklch(0.6 0.18 25)' }), R(30, 4, 2, 14, INKc, { transform: 'rotate(30deg)' })], front: [wheel(4, 52, 14), wheel(56, 52, 14), R(18, 22, 46, 24, 'transparent', { boxShadow: '0 0 0 4px ' + CREAM, borderRadius: 6 })], lift: 0, clip: true };
-      case 'boat': return { back: [], front: [R(-12, 40, 96, 22, 'oklch(0.55 0.12 30)', { borderRadius: '4px 4px 40px 40px' }), R(-12, 40, 96, 5, CREAM), R(-20, 58, 112, 8, 'radial-gradient(ellipse 10px 3px at 50% 50%,rgba(255,255,255,.8) 90%,transparent) 0 0/20px 8px', { animation: 'fidSwim 2s ease-in-out infinite' })], lift: 16 };
+      case 'bike': return { back: [], front: [wheel(0, 34, 26), wheel(46, 34, 26), R(12, 40, 36, 3, 'oklch(0.6 0.16 25)', { transform: 'rotate(-18deg)', transformOrigin: '0 0' }), R(30, 30, 3, 20, 'oklch(0.6 0.16 25)', { transform: 'rotate(18deg)' }), R(52, 26, 3, 22, 'oklch(0.6 0.16 25)', { transform: 'rotate(-14deg)' }), R(48, 24, 14, 3, INKc, { borderRadius: 2 }), R(22, 26, 14, 5, INKc, { borderRadius: 3 })], lift: 8 };
+      case 'train': return { back: [R(-14, 18, 100, 40, 'oklch(0.86 0.16 92)', { borderRadius: '22px 8px 8px 8px', boxShadow: 'inset 0 -6px 0 rgba(0,0,0,.08)' })], front: [R(-14, 44, 100, 8, 'oklch(0.48 0.12 260)'), R(-10, 26, 20, 14, 'oklch(0.4 0.05 250)', { borderRadius: '10px 3px 3px 3px' }), wheel(4, 52, 14), wheel(60, 52, 14), R(18, 22, 50, 22, 'transparent', { boxShadow: 'inset 0 0 0 3px oklch(0.78 0.15 88)', borderRadius: 6 })], lift: 0, win: [18, 22, 50, 22] };
+      case 'tram': return { back: [R(-10, 16, 92, 42, CREAM, { borderRadius: 10, boxShadow: 'inset 0 -14px 0 oklch(0.6 0.18 25), 0 0 0 1px oklch(0.8 0.02 60)' }), R(30, 4, 2, 14, INKc, { transform: 'rotate(30deg)' }), R(-4, 22, 14, 16, 'oklch(0.4 0.05 250)', { borderRadius: 4 })], front: [wheel(4, 52, 14), wheel(56, 52, 14), R(16, 22, 50, 20, 'transparent', { boxShadow: 'inset 0 0 0 3px oklch(0.85 0.02 60)', borderRadius: 6 })], lift: 0, win: [16, 22, 50, 20] };
+      case 'boat': return { back: [R(28, -18, 3, 52, '#5e534c'), R(31, -16, 26, 30, '#fffdf9', { clipPath: 'polygon(0 0,100% 100%,0 100%)', boxShadow: 'inset 0 0 0 1px oklch(0.8 0.02 250)' })], front: [R(-12, 40, 96, 22, 'oklch(0.55 0.12 30)', { borderRadius: '4px 4px 40px 40px' }), R(-12, 40, 96, 5, CREAM), R(-20, 58, 112, 8, 'radial-gradient(ellipse 10px 3px at 50% 50%,rgba(255,255,255,.8) 90%,transparent) 0 0/20px 8px', { animation: 'fidBob 1.4s ease-in-out infinite' })], lift: 0 };
       case 'car': return { back: [R(-8, 30, 88, 26, 'oklch(0.62 0.16 250)', { borderRadius: '14px 18px 8px 8px' })], front: [R(-8, 42, 88, 14, 'oklch(0.55 0.16 250)', { borderRadius: '0 0 8px 8px' }), wheel(2, 48, 18), wheel(56, 48, 18), R(74, 36, 6, 6, 'oklch(0.95 0.12 95)', { borderRadius: 3 })], lift: 8 };
     }
     return { back: [], front: [], lift: 0 };
@@ -4654,9 +4654,11 @@ class Component extends DCLogic {
       });
       // The companion: beside its stop, or on the road with this leg's vehicle.
       const wk = s.routeWalk, at2 = wk ? wk.to : rtAt, [cx, cy] = pos(at2), RIDE = [null, 'train', 'bike', 'bike', 'train', 'bike', 'train', 'tram', 'boat', 'tram', 'train', 'train', 'car', 'train', 'train', 'train'];
-      const veh = wk ? this.routeVehicle(RIDE[wk.to] || 'bike') : null, pigEl = this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: veh && veh.clip ? .3 : .38 });
+      const veh = wk ? this.routeVehicle(RIDE[wk.to] || 'bike') : null, pigEl = this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: veh && veh.win ? .34 : .38 });
       const me = wk ? h('div', { key: 'ride' + wk.key, style: { position: 'absolute', left: 0, top: 0, width: 80, height: 70, zIndex: 5, pointerEvents: 'none', offsetPath: `path('${seg(wk.from, wk.to)}')`, offsetRotate: '0deg', offsetAnchor: '50% 85%', animation: 'fidRoute 2.8s cubic-bezier(.45,0,.35,1) both' } },
-          h('div', { style: { position: 'absolute', inset: 0, animation: 'fidStep .5s ease-in-out infinite' } }, ...veh.back, D({ left: veh.clip ? 22 : 8, top: veh.clip ? 18 - veh.lift : -14 - veh.lift, width: 60, height: 60, overflow: veh.clip ? 'hidden' : 'visible' }, pigEl), ...veh.front),
+          h('div', { style: { position: 'absolute', inset: 0, animation: 'fidStep .5s ease-in-out infinite' } }, ...veh.back,
+            veh.win ? D({ left: veh.win[0], top: veh.win[1], width: veh.win[2], height: veh.win[3], overflow: 'hidden', borderRadius: 6, background: 'linear-gradient(180deg,oklch(0.88 0.05 225),oklch(0.8 0.06 230))' }, D({ left: (veh.win[2] - 54) / 2, top: -13 }, pigEl))
+              : D({ left: 8, top: -14 - veh.lift, width: 60, height: 60 }, pigEl), ...veh.front),
           h('div', { style: { position: 'absolute', left: 10, top: -34, padding: '3px 9px', borderRadius: 10, background: '#fffdf9', font: "600 12px 'DM Sans',sans-serif", color: INK, boxShadow: '0 2px 6px rgba(60,40,30,.2)', whiteSpace: 'nowrap' } }, ({ train: 'Met de trein', bike: 'Met de fiets', tram: 'Met de tram', boat: 'Met de boot', car: 'Met de auto' })[RIDE[wk.to] || 'bike'] + ' naar ' + ROUTE[wk.to].city))
         : h('div', { key: 'me', style: { position: 'absolute', left: side(at2) === 'left' ? cx + 34 : cx - 104, top: cy - 64, width: 70, height: 70, zIndex: 4, pointerEvents: 'none' } }, h('div', { style: { animation: 'fidBob 3s ease-in-out infinite' } }, this.pig({ mood: 'joy', sex: myPig.sex, wear: s.wear, still: true, scale: .44 })));
       const [px2, py2] = pos(partnerAt);
@@ -4711,7 +4713,10 @@ class Component extends DCLogic {
             h('button', { onClick: () => this.setState({ routePass: true }), style: { height: 42, padding: '0 14px', borderRadius: 21, border: 'none', cursor: 'pointer', background: 'oklch(0.42 0.09 255)', color: 'oklch(0.9 0.1 85)', font: "600 14px 'Fredoka',sans-serif", flex: 'none', boxShadow: '0 3px 0 oklch(0.32 0.08 255)' } }, 'Paspoort ' + (rtMe.at || 0)),
             h('button', { onClick: close, 'aria-label': 'Close the Leerroute', style: glassR }, '×')),
           E('div', { height: 10, borderRadius: 5, background: 'rgba(60,40,30,.1)', overflow: 'hidden' }, E('div', { width: Math.max(4, pct) + '%', height: '100%', borderRadius: 5, background: 'linear-gradient(90deg,oklch(0.7 0.15 25),oklch(0.75 0.15 75),oklch(0.65 0.15 145))', transition: 'width .8s' }))),
-        h('div', { className: 'fid-scroll', ref: el => { if (el && el._rt !== at2) { el._rt = at2; el.scrollTop = Math.max(0, pos(at2)[1] - el.clientHeight * .45); } }, style: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' } },
+        h('div', { className: 'fid-scroll', ref: el => { if (!el) return;
+          if (wk && el._wk !== wk.key) { el._wk = wk.key; el._rt = at2; const a = Math.max(0, pos(wk.from)[1] - el.clientHeight * .45), b = Math.max(0, pos(wk.to)[1] - el.clientHeight * .45), t0 = performance.now();
+            const step = now => { const f = Math.min(1, (now - t0) / 2800), e = f < .5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2; el.scrollTop = a + (b - a) * e; if (f < 1 && el.isConnected) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+          else if (!wk && el._rt !== at2) { el._rt = at2; el.scrollTop = Math.max(0, pos(at2)[1] - el.clientHeight * .45); } }, style: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' } },
           h('div', { style: { position: 'relative', width: W, height: HGT, margin: '0 auto', overflow: 'hidden' } },
             ...lands, ...life, ...landmarks,
             h('svg', { width: W, height: HGT, style: { position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }, 'aria-hidden': true },
@@ -4914,8 +4919,8 @@ class Component extends DCLogic {
 
     return {
       framed,
-      outerStyle: framed ? { minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 16px', boxSizing: 'border-box' } : { minHeight: '100vh' },
-      phoneStyle: framed ? { width: 410, height: 864, borderRadius: 58, background: '#16130f', padding: 10, boxSizing: 'border-box', boxShadow: '0 30px 80px rgba(60,40,30,.28), inset 0 0 0 2px #2c2824', flex: 'none' } : { width: '100%', height: '100dvh' },
+      outerStyle: framed ? { minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 16px', boxSizing: 'border-box' } : { position: 'fixed', inset: 0, overflow: 'hidden', overscrollBehavior: 'none' },
+      phoneStyle: framed ? { width: 410, height: 864, borderRadius: 58, background: '#16130f', padding: 10, boxSizing: 'border-box', boxShadow: '0 30px 80px rgba(60,40,30,.28), inset 0 0 0 2px #2c2824', flex: 'none' } : { width: '100%', height: '100%' },
       screenBg: SCREEN_BG[sky.name] || '#f6f1ea',
       screenStyle: { ...(T => ({ '--acc': T.acc, '--accSoft': T.soft, '--accSoft2': T.soft2, '--accInk': T.ink, '--accPanel': T.panel, '--accDot': T.dot }))(THEMES[myPig.sex] || THEMES.f), '--tabDx': (s.tabDir || 1) * 26 + 'px', '--sheetPad': framed ? '34px' : 'max(34px, calc(env(safe-area-inset-bottom) + 18px))', '--tabPad': framed ? '18px' : 'max(14px, env(safe-area-inset-bottom))', '--tabH': framed ? '84px' : 'calc(66px + max(14px, env(safe-area-inset-bottom)))', position: 'relative', overflow: 'hidden', background: SCREEN_BG[sky.name] || '#f6f1ea', transition: 'background 2s', ...(framed ? { width: 390, height: 844, borderRadius: 48 } : { width: '100%', height: '100%' }) },
       topPad: framed ? '54px' : 'max(14px, env(safe-area-inset-top))',
@@ -5084,7 +5089,7 @@ input,button,select{font-family:inherit;color:inherit}
 @keyframes fidGroove{0%,100%{transform:rotate(-5deg) translateY(0)}25%{transform:rotate(0) translateY(-6px)}50%{transform:rotate(5deg) translateY(0)}75%{transform:rotate(0) translateY(-6px)}}
 @keyframes fidRain2{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),110vh) rotate(var(--r))}}
 @keyframes fidDrop{from{opacity:0;transform:translateY(-40px) scale(.96)}to{opacity:1;transform:none}}
-@keyframes fidTrack{from{transform:translateX(-90px)}to{transform:translateX(160px)}}@keyframes fidFlap{0%,100%{transform:scaleY(1)}50%{transform:scaleY(-.55)}}@keyframes fidFly{0%{transform:translate(-60px,0)}50%{transform:translate(calc(50vw),-14px)}100%{transform:translate(calc(100vw + 60px),0)}}@keyframes fidDrift{0%,100%{transform:translateX(0) rotate(-2deg)}50%{transform:translateX(70px) rotate(2deg)}}@keyframes fidRoute{from{offset-distance:0%}to{offset-distance:100%}}@keyframes fidWalk{from{transform:translate(var(--wx),var(--wy))}to{transform:none}}@keyframes fidStep{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}@keyframes fidHalo{0%{transform:scale(.85);opacity:.7}100%{transform:scale(1.5);opacity:0}}@keyframes fidTabIn{from{opacity:0;transform:translateX(var(--tabDx,0px))}to{opacity:1;transform:none}}
+@keyframes fidTurn{0%,30%{transform:rotate(-90deg)}60%,100%{transform:rotate(0deg)}}@keyframes fidTrack{from{transform:translateX(-90px)}to{transform:translateX(160px)}}@keyframes fidFlap{0%,100%{transform:scaleY(1)}50%{transform:scaleY(-.55)}}@keyframes fidFly{0%{transform:translate(-60px,0)}50%{transform:translate(calc(50vw),-14px)}100%{transform:translate(calc(100vw + 60px),0)}}@keyframes fidDrift{0%,100%{transform:translateX(0) rotate(-2deg)}50%{transform:translateX(70px) rotate(2deg)}}@keyframes fidRoute{from{offset-distance:0%}to{offset-distance:100%}}@keyframes fidWalk{from{transform:translate(var(--wx),var(--wy))}to{transform:none}}@keyframes fidStep{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}@keyframes fidHalo{0%{transform:scale(.85);opacity:.7}100%{transform:scale(1.5);opacity:0}}@keyframes fidTabIn{from{opacity:0;transform:translateX(var(--tabDx,0px))}to{opacity:1;transform:none}}
 @keyframes fidKen{from{transform:scale(1.06)}to{transform:scale(1)}}
 @keyframes fidStoryTalk{0%,100%{transform:translateY(0) scale(1)}30%{transform:translateY(-6px) scale(1.02,.98)}60%{transform:translateY(0) scale(.99,1.02)}}
 @keyframes fidTear{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(22px)}}
@@ -5098,10 +5103,17 @@ input,button,select{font-family:inherit;color:inherit}
 @keyframes coinUp{0%{opacity:0;transform:translateY(10px)}20%{opacity:1}100%{opacity:0;transform:translateY(-46px)}}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fid-rotate{display:none}
+@media (orientation:landscape) and (max-height:520px){.fid-rotate{display:flex}}
 @keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
 </style>
 </helmet>
 <div style="{{ outerStyle }}">
+<div class="fid-rotate" style="position:fixed;inset:0;z-index:10000;background:#f6f1ea;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px;box-sizing:border-box;touch-action:none">
+  <div style="width:44px;height:74px;border-radius:10px;border:4px solid #2a2320;box-sizing:border-box;animation:fidTurn 2.4s ease-in-out infinite"></div>
+  <div style="font:600 22px 'Fredoka',sans-serif;color:#2a2320">Turn your phone upright</div>
+  <div style="font:400 15px 'DM Sans',sans-serif;color:#5e534c">Fidous works best standing up.</div>
+</div>
 <div style="{{ phoneStyle }}">
 <div class="{{ screenClass }}" style="{{ screenStyle }}">
 
@@ -5523,7 +5535,7 @@ input,button,select{font-family:inherit;color:inherit}
 
 {{ playerEl }}
 
-<div style="position:absolute;left:0;right:0;bottom:0;height:var(--tabH);background:rgba(255,253,249,.94);border-top:1px solid #ece4da;display:grid;grid-template-columns:repeat(5,1fr);padding:0 4px var(--tabPad);box-sizing:border-box;z-index:20;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+<div style="position:absolute;left:0;right:0;bottom:0;height:var(--tabH);touch-action:none;background:rgba(255,253,249,.94);border-top:1px solid #ece4da;display:grid;grid-template-columns:repeat(5,1fr);padding:0 4px var(--tabPad);box-sizing:border-box;z-index:20;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
   <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="5">
     <button onClick="{{ tb.go }}" aria-label="{{ tb.label }}" aria-current="{{ tb.current }}" style="border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;padding:0">
       {{ tb.icon }}
