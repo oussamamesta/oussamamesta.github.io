@@ -737,14 +737,14 @@ function load() {
   return null;
 }
 
-// Background music: the songs Oussama picked, played by YouTube's own player (it shows itself in the music
-// sheet and waits behind the app otherwise). Each song starts its YouTube radio mix, like "start radio" on
-// YouTube; if a mix will not play, the songs below play in a loop instead. Only the website has music; the
-// claude.ai frame cannot load YouTube. Whenever the app reads Dutch aloud, the music fades out and comes back.
+// Background music: the songs Oussama picked, played in a loop by YouTube's own player (it shows itself in the
+// music sheet and waits behind the app otherwise). Only these songs play: no YouTube mixes or suggestions. Only
+// the website has music; the claude.ai frame cannot load YouTube. Whenever the app reads Dutch aloud, the music
+// fades out and comes back.
 // [key, name, line, YouTube video, cover art]; a missing name is filled in from YouTube once it has played.
 const GENRES = [['sF80I-TQiW0', '90s chill lofi', 'Lofi with rain', 'sF80I-TQiW0', 1], ['CLeZyIID9Bo', 'Chill lofi mix', 'Lofi beats', 'CLeZyIID9Bo', 2],
   ['m-v-LGOfaKo', 'Banana Pancakes', 'Jack Johnson', 'm-v-LGOfaKo', 0], ['DHEOF_rcND8', 'Home', 'Edward Sharpe & the Magnetic Zeros', 'DHEOF_rcND8', 3],
-  ['8C8j9ql7C0Y', '', 'Song and its radio mix', '8C8j9ql7C0Y', 5], ['BLFwWl00sQM', '', 'Song and its radio mix', 'BLFwWl00sQM', 4], ['B2STXctWRpU', 'Margarita Sunday', 'Kainbeats', 'B2STXctWRpU', 1]];
+  ['8C8j9ql7C0Y', '', 'Your pick', '8C8j9ql7C0Y', 5], ['BLFwWl00sQM', '', 'Your pick', 'BLFwWl00sQM', 4], ['B2STXctWRpU', 'Margarita Sunday', 'Kainbeats', 'B2STXctWRpU', 1]];
 const TITLES_KEY = 'fidous-yt-titles';
 const songName = (g, i) => { if (g[1]) return g[1]; try { const t = JSON.parse(localStorage.getItem(TITLES_KEY) || '{}')[g[3]]; if (t) return t; } catch (e) {} return 'Song ' + (i + 1); };
 const GENRE_KEY = 'fidous-song';
@@ -769,7 +769,7 @@ const YtAudio = {
     this.onEvent = onEvent;
     const make = () => { try { this.player = new window.YT.Player(inner, { width: '100%', height: '100%', playerVars: { playsinline: 1, controls: 0, disablekb: 1, rel: 0, iv_load_policy: 3, fs: 0, origin: location.origin },
       events: { onReady: () => { this.ready = true; this.volume = this.vol; if (this.vid) this.setList(this.vid); onEvent(); },
-        onStateChange: e => this.changed(e.data), onError: () => this.failedVideo() } }); } catch (e) { this.failed = true; onEvent(); } };
+        onStateChange: e => this.changed(e.data), onError: () => { this.errs++; if (this.errs < GENRES.length) try { this.player.nextVideo(); } catch (er) {} } } }); } catch (e) { this.failed = true; onEvent(); } };
     if (window.YT && window.YT.Player) make();
     else { const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { if (prev) prev(); make(); };
       const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => { this.failed = true; onEvent(); }; document.head.appendChild(sc); }
@@ -779,19 +779,13 @@ const YtAudio = {
     this.state = st;
     if (st === 1) { this.want = false; this.blocked = false; this.errs = 0; this.ok = true; clearTimeout(this._bt);
       try { const v = this.player.getVideoData() || {}; this.title = v.title || '';
-        if (v.video_id === this.vid && v.title) { const m = JSON.parse(localStorage.getItem(TITLES_KEY) || '{}'); if (m[v.video_id] !== v.title) { m[v.video_id] = v.title; localStorage.setItem(TITLES_KEY, JSON.stringify(m)); } } } catch (e) {} }
-    if (st === 0 && this.onEnded) this.onEnded();
+        const k = GENRES.findIndex(g => g[3] === v.video_id); if (k >= 0) { this.vid = v.video_id; if (this.onSong) this.onSong(k); }
+        if (k >= 0 && v.title) { const m = JSON.parse(localStorage.getItem(TITLES_KEY) || '{}'); if (m[v.video_id] !== v.title) { m[v.video_id] = v.title; localStorage.setItem(TITLES_KEY, JSON.stringify(m)); } } } catch (e) {} }
     if (this.onEvent) this.onEvent();
   },
-  // A song that will not play: if its radio mix never started, play the picked songs in a loop instead.
-  failedVideo() {
-    this.errs++;
-    if (this.mix && !this.ok) { this.mix = false; const ids = GENRES.map(g => g[3]), k = Math.max(0, ids.indexOf(this.vid));
-      try { this.player[this.want || this.on ? 'loadPlaylist' : 'cuePlaylist'](ids, k); this.player.setLoop(true); } catch (e) {} }
-    else if (this.errs < 8) try { this.player.nextVideo(); } catch (e) {}
-  },
-  // Load a song with its radio mix; it is only loaded (not played) until someone asks for music.
-  setList(vid) { this.vid = vid; this.title = ''; this.mix = true; this.ok = false; if (!this.ready) return; try { this.player[this.want ? 'loadPlaylist' : 'cuePlaylist']({ list: 'RD' + vid, listType: 'playlist' }); } catch (e) {} },
+  // Load the picked songs, starting at this one; they are only loaded (not played) until someone asks for music.
+  setList(vid) { this.vid = vid; this.title = ''; if (!this.ready) return; const ids = GENRES.map(g => g[3]);
+    try { this.player[this.want ? 'loadPlaylist' : 'cuePlaylist'](ids, Math.max(0, ids.indexOf(vid))); this.player.setLoop(true); } catch (e) {} },
   play() {
     this.want = true; this.on = true;
     if (this.ready) try { this.player.playVideo(); } catch (e) {}
@@ -831,7 +825,7 @@ const Sound = {
   audio() {
     if (this.el) return this.el;
     YtAudio.boot(() => { if (YtAudio.state === 1) { this.started = true; this.userPaused = false; } this.tick(); if (this.onTrack) this.onTrack(); }, () => this.tick());
-    YtAudio.onEnded = () => this.playGenre(this.i + 1);
+    YtAudio.onSong = k => { if (k !== this.i) { this.i = k; try { localStorage.setItem(GENRE_KEY, GENRES[k][0]); } catch (e) {} } };
     YtAudio.setList(GENRES[this.i][3]);
     return (this.el = YtAudio);
   },
@@ -4609,7 +4603,7 @@ class Component extends DCLogic {
           h('div', { style: { width: 42, height: 42, borderRadius: 12, overflow: 'hidden', flex: 'none', boxShadow: '0 2px 6px rgba(42,35,32,.15)' } }, this.trackArt(Sound.i, 42, playing)),
           E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
             E('span', { font: "600 14px 'DM Sans',sans-serif", color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, songT),
-            E('span', { display: 'flex', alignItems: 'center', gap: 6, font: "500 11.5px 'DM Sans',sans-serif", color: '#7a6e66', whiteSpace: 'nowrap' }, eq(playing), !musicOn ? 'Music is off · tap play' : yt.blocked ? 'Tap here, then tap the video' : Sound.hushed ? 'Paused while Dutch is read' : h('span', null, 'Radio · ', h('span', { 'data-fid-time': '' }, mmss2(curT)), ' / ', h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : '–:––'))))),
+            E('span', { display: 'flex', alignItems: 'center', gap: 6, font: "500 11.5px 'DM Sans',sans-serif", color: '#7a6e66', whiteSpace: 'nowrap' }, eq(playing), !musicOn ? 'Music is off · tap play' : yt.blocked ? 'Tap here, then tap the video' : Sound.hushed ? 'Paused while Dutch is read' : h('span', null, 'Song ' + (Sound.i + 1) + ' · ', h('span', { 'data-fid-time': '' }, mmss2(curT)), ' / ', h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : '–:––'))))),
         h('button', { onClick: () => this.musicToggle(), 'aria-label': playing ? 'Pause music' : 'Play music', style: roundB(40, true) }, svgI(playing ? I_PAUSE : I_PLAY, 18)),
         h('button', { onClick: () => Sound.skip(), 'aria-label': 'Next song', style: roundB(36) }, svgI(I_NEXT, 18)),
         h('button', { onClick: () => this.setUi({ uiDisc: true }), 'aria-label': 'Fold the player away', style: { ...roundB(30), color: '#a89b90' } }, h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round', 'aria-hidden': true }, h('path', { d: 'M6 9l6 6 6-6' }))),
@@ -4625,7 +4619,7 @@ class Component extends DCLogic {
           E('span', { position: 'absolute', left: 12, bottom: 10, font: "600 12px 'DM Sans',sans-serif", padding: '5px 10px', borderRadius: 10, background: 'rgba(255,253,249,.92)', color: INK }, yt.failed ? 'Music needs internet' : 'Loading YouTube…')),
         E('div', { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' },
           E('span', { font: "600 20px/1.25 'Fredoka',sans-serif", color: INK, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }, yt.title || gName),
-          E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Fidous radio · ' + (yt.mix ? 'mix from ' + gName : 'your songs') + ' · YouTube')),
+          E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Fidous radio · song ' + (Sound.i + 1) + ' of ' + GENRES.length + ' · YouTube')),
         E('div', { display: 'flex', flexDirection: 'column', gap: 2 },
           h('input', { type: 'range', min: 0, max: 1000, defaultValue: Math.round(frac * 1000), 'data-fid-seek': '', 'aria-label': 'Song position', onPointerDown: () => { Sound.dragging = true; }, onPointerUp: () => { Sound.dragging = false; }, onChange: e => Sound.seek(+e.target.value / 1000), style: range }),
           E('div', { display: 'flex', justifyContent: 'space-between', font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, h('span', { 'data-fid-time': '' }, mmss2(curT)), h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : '–:––'))),
