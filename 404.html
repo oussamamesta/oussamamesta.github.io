@@ -1092,7 +1092,7 @@ class Component extends DCLogic {
     try {
       const syn = window.speechSynthesis;
       // Voices load late on some phones: wait for them once instead of falling back to a default voice.
-      if (!syn.getVoices().length && !this._voiceWait) { this._voiceWait = true; const go = () => { syn.removeEventListener('voiceschanged', go); this.speak(text); }; syn.addEventListener('voiceschanged', go); setTimeout(go, 700); return; }
+      if (!syn.getVoices().length && !this._voiceWait) { this._voiceWait = true; Sound.hushForSpeech(); const go = () => { syn.removeEventListener('voiceschanged', go); this.speak(text); }; syn.addEventListener('voiceschanged', go); setTimeout(go, 700); return; }
       const u = new SpeechSynthesisUtterance(text.replace(/[…/]/g, ' ').replace(/\s+/g, ' ').trim()), v = bestVoice();
       u.lang = v ? v.lang : 'nl-NL'; if (v) { try { u.voice = v; } catch (e) {} this._voiceName = v.name; }
       // A natural learner's pace: a touch slower than normal speech, at the voice's own pitch.
