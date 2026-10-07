@@ -737,6 +737,15 @@ function load() {
 // Whenever the app reads Dutch aloud, the music fades out and comes back afterwards.
 const TRACKS = [['tea-and-paperbacks', 'Tea and paperbacks', '2:59', 0], ['velvet-paws-and-raindrops', 'Velvet paws and raindrops', '3:00', 1], ['tea-by-the-water', 'Tea by the water', '2:57', 3]];
 const mmss2 = sec => { sec = Math.max(0, Math.floor(sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
+// Dutch voices: the phone's own speech voices, best first. "Enhanced", "Premium" and "Natural" voices
+// sound far more human than the compact defaults; the novelty voices on Apple devices are left out.
+const VOICE_KEY = 'fidous-voice';
+const dutchVoices = () => { try { return (window.speechSynthesis.getVoices() || []).filter(v => /^nl/i.test(v.lang)); } catch (e) { return []; } };
+const voiceScore = v => (/premium|enhanced|natural|neural|online|verbeterd/i.test(v.name) ? 60 : 0) + (/^nl[-_]NL/i.test(v.lang) ? 20 : 0)
+  + (/xander|claire|fenna|colette|maarten|google nederlands|laura|lotte|ruben/i.test(v.name) ? 15 : 0)
+  - (/compact|eloquence|espeak|fred|grandpa|grandma|rocko|shelley|sandy|flo|reed|eddy|bad news|bubbles|cellos|jester|organ|whisper|zarvox|trinoids|wobble|bells|boing|albert|bahh|junior|kathy|ralph|superstar/i.test(v.name) ? 80 : 0);
+const bestVoice = () => { const all = dutchVoices(); let pick = null; try { const k = localStorage.getItem(VOICE_KEY); pick = k && all.find(v => v.voiceURI === k); } catch (e) {}
+  return pick || all.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null; };
 const Sound = {
   userAt: 0, byUser(ms) { return Date.now() - this.userAt < (ms || 2500); },
   music: true, sfx: true, userPaused: false, dragging: false, vol: (() => { try { const v = parseFloat(localStorage.getItem('fidous-vol')); return v >= 0 && v <= 1 ? v : .32; } catch (e) { return .32; } })(), el: null, ctx: null, i: Math.floor(Math.random() * TRACKS.length), started: false, hushed: false, last: 0, onTrack: null,
@@ -960,6 +969,29 @@ class Component extends DCLogic {
       if (n) this.writeDoc(id, n[0], n[1]);
     });
   }
+  // Settings: pick the Dutch voice on this phone.
+  voiceEl() {
+    const h = React.createElement, s = this.state, all = dutchVoices().sort((a, b) => voiceScore(b) - voiceScore(a)), cur = bestVoice();
+    const ios = typeof navigator !== 'undefined' && /iPhone|iPad|Mac/i.test(navigator.userAgent), android = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    const pick = v => { try { if (v) localStorage.setItem(VOICE_KEY, v.voiceURI); else localStorage.removeItem(VOICE_KEY); } catch (e) {} this.forceUpdate(); this.speak('Hallo! Zo klink ik. Goed gedaan vandaag!'); };
+    const row = { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', font: "500 14px 'DM Sans',sans-serif", color: INK };
+    return h('div', { key: 'voice', style: { display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 10 } },
+      h('span', { style: { font: "600 12px 'DM Sans',sans-serif", letterSpacing: '.08em', textTransform: 'uppercase', color: '#8a7e76' } }, 'Dutch voice'),
+      h('button', { onClick: () => this.setState({ voicesOpen: !s.voicesOpen }), style: { ...row, background: '#f6f1ea', justifyContent: 'space-between' } },
+        h('span', { style: { display: 'flex', flexDirection: 'column', gap: 2 } }, h('span', { style: { font: "600 15px 'DM Sans',sans-serif" } }, cur ? cur.name.replace(/\s*\(.*?\)\s*/g, ' ').trim() : 'No Dutch voice found'),
+          h('span', { style: { font: "400 13px 'DM Sans',sans-serif", color: '#695d55' } }, all.length ? all.length + ' Dutch voice' + (all.length > 1 ? 's' : '') + ' on this phone · tap to choose' : 'Add a Dutch voice in your phone settings')),
+        h('span', { style: { font: "500 18px 'DM Sans',sans-serif", color: '#7a6e66' } }, s.voicesOpen ? '▴' : '▾')),
+      s.voicesOpen ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+        ...all.map(v => { const on = cur && v.voiceURI === cur.voiceURI, good = voiceScore(v) >= 60;
+          return h('button', { key: v.voiceURI, onClick: () => pick(v), style: { ...row, background: on ? 'oklch(0.94 0.05 150)' : '#fffdf9', boxShadow: on ? 'none' : 'inset 0 0 0 1px #e3d9cd' } },
+            h('span', { style: { width: 18, height: 18, borderRadius: 9, flex: 'none', boxShadow: 'inset 0 0 0 2px ' + (on ? C.green : '#cfc4b8'), background: on ? C.green : 'transparent' } }),
+            h('span', { style: { flex: 1, minWidth: 0 } }, v.name, h('span', { style: { color: '#7a6e66' } }, ' · ' + v.lang)),
+            good ? h('span', { style: { font: "600 11px 'DM Sans',sans-serif", padding: '3px 8px', borderRadius: 8, background: C.greenSoft, color: C.greenInk } }, 'natural') : null); }),
+        all.length > 1 ? h('button', { onClick: () => pick(null), style: { ...row, background: 'none', justifyContent: 'center', color: '#5e534c' } }, 'Let Fidous choose the best voice') : null) : null,
+      h('span', { style: { font: "400 13px/1.45 'DM Sans',sans-serif", color: '#695d55' } }, ios ? 'Tip: for a much more natural voice, open the iPhone Settings → Accessibility → Spoken Content → Voices → Dutch, and download Xander or Claire (Enhanced or Premium). Then pick it here.'
+        : android ? 'Tip: for a more natural voice, open Settings → Text-to-speech output, choose Speech Services by Google, and install the Dutch (Netherlands) voice data.'
+        : 'Tip: in Edge, the Dutch “Natural” voices (Fenna, Maarten, Colette) sound the most human.'));
+  }
   // Backups: everything the household shares, as one JSON file. Restoring replaces it on both phones.
   backupMake() {
     const at = new Date(), name = 'fidous-backup-' + dkey() + '.json';
@@ -1058,9 +1090,14 @@ class Component extends DCLogic {
   }
   speak(text) {
     try {
-      const u = new SpeechSynthesisUtterance(text.replace(/[…/]/g, ' ')); u.lang = 'nl-NL'; u.rate = .85;
-      const v = window.speechSynthesis.getVoices().find(x => /^nl/i.test(x.lang)); if (v) u.voice = v;
-      Sound.hushForSpeech(); window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+      const syn = window.speechSynthesis;
+      // Voices load late on some phones: wait for them once instead of falling back to a default voice.
+      if (!syn.getVoices().length && !this._voiceWait) { this._voiceWait = true; const go = () => { syn.removeEventListener('voiceschanged', go); this.speak(text); }; syn.addEventListener('voiceschanged', go); setTimeout(go, 700); return; }
+      const u = new SpeechSynthesisUtterance(text.replace(/[…/]/g, ' ').replace(/\s+/g, ' ').trim()), v = bestVoice();
+      u.lang = v ? v.lang : 'nl-NL'; if (v) { try { u.voice = v; } catch (e) {} this._voiceName = v.name; }
+      // A natural learner's pace: a touch slower than normal speech, at the voice's own pitch.
+      u.rate = .92; u.pitch = 1;
+      Sound.hushForSpeech(); syn.cancel(); syn.speak(u);
     } catch (e) { this.toastMsg('This phone can’t read aloud here'); }
   }
   quizAnswer(q, i) {
@@ -4319,6 +4356,7 @@ class Component extends DCLogic {
       h('button', { key: 'player', onClick: () => this.setState({ sheet: 'music' }), style: { height: 40, border: 'none', background: 'none', font: "500 14px 'DM Sans',sans-serif", color: '#5e534c', cursor: 'pointer' } }, 'Open the music player ›'),
       sw('Sound effects', 'Little sounds when you tap, earn coins and celebrate', s.uiFx !== false, () => { const on = s.uiFx === false; Sound.sfx = on; this.setUi({ uiFx: on }); if (on) Sound.fx('sparkle'); }),
       h('button', { onClick: () => this.setState({ sheet: 'tour', f: { step: 0 } }), style: { height: 40, border: 'none', background: 'none', font: "500 14px 'DM Sans',sans-serif", color: '#5e534c', cursor: 'pointer' } }, 'Show the welcome tour again'),
+      this.voiceEl(),
       this.backupEl());
     // ---- Art direction: one storybook world on every tab ----
     const D2 = (st, ...k) => h('div', { style: { position: 'absolute', ...st } }, ...k);
@@ -5104,7 +5142,7 @@ input,button,select{font-family:inherit;color:inherit}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .fid-rotate{display:none}
-@media (orientation:landscape) and (max-height:520px){.fid-rotate{display:flex}}
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse) and (hover:none){.fid-rotate{display:flex}}
 @keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
 </style>
 </helmet>
