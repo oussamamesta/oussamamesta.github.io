@@ -741,11 +741,18 @@ function load() {
 // music sheet and waits behind the app otherwise). Only these songs play: no YouTube mixes or suggestions. Only
 // the website has music; the claude.ai frame cannot load YouTube. Whenever the app reads Dutch aloud, the music
 // fades out and comes back.
-// [key, name, line, YouTube video, cover art]; a missing name is filled in from YouTube once it has played.
+// [key, name, line, YouTube video, cover art, other uploads of the same song]; a missing name is filled in from
+// YouTube once it has played. Record labels often block their uploads in other apps; then the next upload is tried.
 const GENRES = [['sF80I-TQiW0', '90s chill lofi', 'Lofi with rain', 'sF80I-TQiW0', 1], ['CLeZyIID9Bo', 'Chill lofi mix', 'Lofi beats', 'CLeZyIID9Bo', 2],
-  ['m-v-LGOfaKo', 'Banana Pancakes', 'Jack Johnson', 'm-v-LGOfaKo', 0], ['DHEOF_rcND8', 'Home', 'Edward Sharpe & the Magnetic Zeros', 'DHEOF_rcND8', 3],
+  ['m-v-LGOfaKo', 'Banana Pancakes', 'Jack Johnson', 'OkyrIRyrRdY', 0, ['ozdJQL7JJ7E', 'FRDB0p-EKXc', 'S3-sJW0hbqk', 'm-v-LGOfaKo']], ['DHEOF_rcND8', 'Home', 'Edward Sharpe & the Magnetic Zeros', 'DHEOF_rcND8', 3],
   ['8C8j9ql7C0Y', '', 'Your pick', '8C8j9ql7C0Y', 5], ['BLFwWl00sQM', '', 'Your pick', 'BLFwWl00sQM', 4], ['B2STXctWRpU', 'Margarita Sunday', 'Kainbeats', 'B2STXctWRpU', 1]];
-const TITLES_KEY = 'fidous-yt-titles';
+const TITLES_KEY = 'fidous-yt-titles', YT_ERR_KEY = 'fidous-yt-errors', YT_ALT_KEY = 'fidous-yt-alt';
+// Each phone remembers which upload of a song worked.
+try { const m = JSON.parse(localStorage.getItem(YT_ALT_KEY) || '{}'); GENRES.forEach(g => { if (m[g[0]] && (g[5] || []).includes(m[g[0]])) g[3] = m[g[0]]; }); } catch (e) {}
+// YouTube's reasons for refusing a video inside another app (its player error codes).
+const ytWhy = c => c === 101 || c === 150 ? 'The owner blocks it in other apps' : c === 100 ? 'Removed or private on YouTube' : c === 152 || c === 153 ? 'YouTube refused the player here' : c === 5 ? 'This phone cannot play it' : c === 2 ? 'Not a valid YouTube link' : 'YouTube error ' + c;
+const ytErrs = () => { try { return JSON.parse(localStorage.getItem(YT_ERR_KEY) || '{}'); } catch (e) { return {}; } };
+const ytErrSet = (vid, code) => { try { const m = ytErrs(); if (code == null) { if (!(vid in m)) return; delete m[vid]; } else m[vid] = code; localStorage.setItem(YT_ERR_KEY, JSON.stringify(m)); } catch (e) {} };
 const songName = (g, i) => { if (g[1]) return g[1]; try { const t = JSON.parse(localStorage.getItem(TITLES_KEY) || '{}')[g[3]]; if (t) return t; } catch (e) {} return 'Song ' + (i + 1); };
 const GENRE_KEY = 'fidous-song';
 // Looks like an <audio> element to Sound (paused, volume, currentTime, duration, play, pause).
@@ -769,7 +776,7 @@ const YtAudio = {
     this.onEvent = onEvent;
     const make = () => { try { this.player = new window.YT.Player(inner, { width: '100%', height: '100%', playerVars: { playsinline: 1, controls: 0, disablekb: 1, rel: 0, iv_load_policy: 3, fs: 0, origin: location.origin },
       events: { onReady: () => { this.ready = true; this.volume = this.vol; if (this.vid) this.setList(this.vid); onEvent(); },
-        onStateChange: e => this.changed(e.data), onError: () => { this.errs++; if (this.errs < GENRES.length) try { this.player.nextVideo(); } catch (er) {} } } }); } catch (e) { this.failed = true; onEvent(); } };
+        onStateChange: e => this.changed(e.data), onError: e => this.failedVideo(e && e.data) } }); } catch (e) { this.failed = true; onEvent(); } };
     if (window.YT && window.YT.Player) make();
     else { const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { if (prev) prev(); make(); };
       const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => { this.failed = true; onEvent(); }; document.head.appendChild(sc); }
@@ -779,8 +786,20 @@ const YtAudio = {
     this.state = st;
     if (st === 1) { this.want = false; this.blocked = false; this.errs = 0; this.ok = true; clearTimeout(this._bt);
       try { const v = this.player.getVideoData() || {}; this.title = v.title || '';
-        const k = GENRES.findIndex(g => g[3] === v.video_id); if (k >= 0) { this.vid = v.video_id; if (this.onSong) this.onSong(k); }
+        const k = GENRES.findIndex(g => g[3] === v.video_id); if (k >= 0) { this.vid = v.video_id; ytErrSet(v.video_id, null); if (this.onSong) this.onSong(k); }
         if (k >= 0 && v.title) { const m = JSON.parse(localStorage.getItem(TITLES_KEY) || '{}'); if (m[v.video_id] !== v.title) { m[v.video_id] = v.title; localStorage.setItem(TITLES_KEY, JSON.stringify(m)); } } } catch (e) {} }
+    if (this.onEvent) this.onEvent();
+  },
+  // A song YouTube will not play here: remember why (the song list shows it) and go on to the next one.
+  failedVideo(code) {
+    this.errs++; let k = GENRES.findIndex(g => g[3] === this.vid); try { const i = this.player.getPlaylistIndex(); if (i >= 0 && GENRES[i]) k = i; } catch (e) {}
+    const g = GENRES[k]; if (!g) return;
+    ytErrSet(g[3], code == null ? -1 : code);
+    // Another upload of the same song may be allowed: switch to it and stay on this song.
+    const errs = ytErrs(), alt = (g[5] || []).find(v => v !== g[3] && !(v in errs));
+    if (alt && this.errs < 12) { g[3] = alt; try { const m = JSON.parse(localStorage.getItem(YT_ALT_KEY) || '{}'); m[g[0]] = alt; localStorage.setItem(YT_ALT_KEY, JSON.stringify(m)); } catch (e) {}
+      this.vid = alt; try { this.player[this.want || this.on ? 'loadPlaylist' : 'cuePlaylist'](GENRES.map(x => x[3]), k); this.player.setLoop(true); } catch (e) {} }
+    else if (this.errs < 12) try { this.player.nextVideo(); } catch (e) {}
     if (this.onEvent) this.onEvent();
   },
   // Load the picked songs, starting at this one; they are only loaded (not played) until someone asks for music.
@@ -919,11 +938,12 @@ class Component extends DCLogic {
     this._pd = () => { Sound.userAt = Date.now(); };
     document.addEventListener('pointerdown', this._pd, true); document.addEventListener('keydown', this._pd, true);
     document.addEventListener('click', this._snd); document.addEventListener('visibilitychange', this._vis);
-    // A sheet (the music player and the others) follows a finger pulling down from its top and closes past a point.
+    // A sheet (the music player and the others) follows a finger pulling it down, from its handle and title or from
+    // anywhere once its content is scrolled to the top, and closes past a point.
     this._ts = e => { const p = e.target.closest && e.target.closest('[data-fid-sheet]');
-      this._sw = p && e.touches.length === 1 && this.state.sheet !== 'welcome' && !e.target.closest('input,textarea,select') ? { p, x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), dy: 0, on: false } : null; };
+      this._sw = p && e.touches.length === 1 && this.state.sheet !== 'welcome' && !e.target.closest('input,textarea,select') ? { p, head: [p.children[0], p.children[1]].some(c => c && c.contains(e.target)), x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), dy: 0, on: false } : null; };
     this._tm = e => { const w = this._sw; if (!w) return; const dy = e.touches[0].clientY - w.y, dx = e.touches[0].clientX - w.x;
-      if (!w.on) { if (w.p.scrollTop > 0 || dy <= 0 || Math.abs(dx) > dy) { if (Math.abs(dx) > 8 || Math.abs(dy) > 8) this._sw = null; return; }
+      if (!w.on) { if ((w.p.scrollTop > 0 && !w.head) || dy <= 0 || Math.abs(dx) > dy) { if (Math.abs(dx) > 8 || Math.abs(dy) > 8) this._sw = null; return; }
         if (e.cancelable) e.preventDefault(); if (dy < 8) return; w.on = true; w.t = Date.now(); w.p.style.transition = 'none'; }
       if (e.cancelable) e.preventDefault(); w.dy = Math.max(0, dy - 8); w.p.style.transform = 'translateY(' + w.dy + 'px)'; YtAudio.place(); };
     this._te = () => { const w = this._sw; this._sw = null; if (!w || !w.on) return; const fast = w.dy / Math.max(1, Date.now() - w.t) > .5;
@@ -4630,11 +4650,15 @@ class Component extends DCLogic {
         E('div', { display: 'flex', alignItems: 'center', gap: 10, color: '#7a6e66' },
           svgI('M4 9v6h4l5 4V5L8 9H4z', 18), h('input', { type: 'range', min: 0, max: 100, defaultValue: Math.round(Sound.vol * 100), 'aria-label': 'Volume', onChange: e => Sound.setVol(+e.target.value / 100), style: range }), svgI('M4 9v6h4l5 4V5L8 9H4zm11.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM13 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z', 20)),
         E('div', { display: 'flex', flexDirection: 'column', gap: 4, background: '#f6f1ea', borderRadius: 20, padding: 6 },
-          ...GENRES.map((g, i) => { const cur = i === Sound.i, name = songName(g, i), line = g[2];
-            return h('button', { key: 'gn' + i, onClick: () => Sound.playGenre(i), 'aria-label': 'Play ' + name, 'aria-current': cur ? 'true' : undefined, style: { display: 'flex', alignItems: 'center', gap: 12, padding: 6, borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left', background: cur ? '#fffdf9' : 'transparent', boxShadow: cur ? '0 1px 4px rgba(42,35,32,.08)' : 'none' } },
-              h('div', { style: { width: 44, height: 44, borderRadius: 11, overflow: 'hidden', flex: 'none' } }, this.trackArt(i, 44, cur && playing)),
-              E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }, E('span', { font: (cur ? 600 : 500) + " 15px 'DM Sans',sans-serif", color: INK }, name), E('span', { font: "400 12.5px 'DM Sans',sans-serif", color: '#7a6e66' }, line)),
-              cur && playing ? eq(true) : null); })),
+          ...GENRES.map((g, i) => { const cur = i === Sound.i, name = songName(g, i), err = ytErrs()[g[3]];
+            const row = h('button', { key: 'gn' + i, onClick: () => Sound.playGenre(i), 'aria-label': 'Play ' + name, 'aria-current': cur ? 'true' : undefined, style: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: 6, borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left', background: cur ? '#fffdf9' : 'transparent', boxShadow: cur ? '0 1px 4px rgba(42,35,32,.08)' : 'none' } },
+              h('div', { style: { width: 44, height: 44, borderRadius: 11, overflow: 'hidden', flex: 'none', filter: err != null ? 'grayscale(1)' : 'none' } }, this.trackArt(i, 44, cur && playing)),
+              E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }, E('span', { font: (cur ? 600 : 500) + " 15px 'DM Sans',sans-serif", color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, name),
+                E('span', { font: "400 12.5px 'DM Sans',sans-serif", color: err != null ? 'oklch(0.5 0.16 25)' : '#7a6e66' }, err != null ? ytWhy(err) : g[2])),
+              cur && playing ? eq(true) : null);
+            // A song YouTube refuses here can still be heard in the YouTube app.
+            return err == null ? row : E('div', { key: 'gw' + i, display: 'flex', alignItems: 'center', gap: 4 }, row,
+              h('a', { href: 'https://www.youtube.com/watch?v=' + g[3], target: '_blank', rel: 'noopener', 'aria-label': 'Open ' + name + ' on YouTube', style: { flex: 'none', padding: '8px 10px', borderRadius: 12, font: "600 12px 'DM Sans',sans-serif", color: 'oklch(0.5 0.16 25)', textDecoration: 'none', background: '#fffdf9' } }, 'YouTube ↗')); })),
         E('span', { ...mutedS, textAlign: 'center' }, yt.blocked ? 'Your phone wants one tap on the video itself to start the music.' : musicOn ? 'Songs come from YouTube, so music needs internet. It pauses by itself while Dutch is read aloud and during quizzes.' : 'Music is switched off on this phone. Press play to turn it back on.'));
     }
     // Piggy stories: a library of covers, then a full-screen reader with a speaking prompt and a quiz.
