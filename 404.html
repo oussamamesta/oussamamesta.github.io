@@ -951,6 +951,25 @@ class Component extends DCLogic {
       else { w.p.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; w.p.style.transform = ''; } };
     document.addEventListener('touchstart', this._ts, { passive: true }); document.addEventListener('touchmove', this._tm, { passive: false });
     document.addEventListener('touchend', this._te); document.addEventListener('touchcancel', this._te);
+    // Swipe left or right on a tab's page to go to the next or previous tab. The page follows the finger;
+    // rows that scroll sideways, the piggy (stroking) and form fields keep their own gestures.
+    const TABS = ['today', 'fidous', 'upkeep', 'stock', 'journeys'];
+    this._tsT = e => { this._swT = null; const s = this.state, m = e.target.closest && e.target.closest('[data-fid-main]');
+      if (!m || e.touches.length !== 1 || s.sheet || s.story || s.drill || s.routeOpen || s.game || s.deco || s.journey || s.editing || !TABS.includes(s.tab)) return;
+      for (let el = e.target; el && el !== m; el = el.parentElement) { if (el.matches('input,textarea,select,[contenteditable],[data-fid-noswipe]')) return;
+        const cs = getComputedStyle(el); if (cs.touchAction === 'none' || (/auto|scroll/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 2)) return; }
+      this._swT = { m, x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), dx: 0, on: false, i: TABS.indexOf(s.tab) }; };
+    this._tmT = e => { const w = this._swT; if (!w) return; const dx = e.touches[0].clientX - w.x, dy = e.touches[0].clientY - w.y;
+      if (!w.on) { if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return; if (Math.abs(dx) < Math.abs(dy) * 1.2) { this._swT = null; return; } w.on = true; w.x += Math.sign(dx) * 10; w.t = Date.now(); w.m.style.transition = 'none'; }
+      if (e.cancelable) e.preventDefault(); const d = e.touches[0].clientX - w.x, edge = (d > 0 && w.i === 0) || (d < 0 && w.i === TABS.length - 1);
+      w.dx = edge ? d * .25 : d; w.m.style.transform = 'translateX(' + w.dx + 'px)'; w.m.style.opacity = String(1 - Math.min(.35, Math.abs(w.dx) / w.m.clientWidth * .6)); };
+    this._teT = () => { const w = this._swT; this._swT = null; if (!w || !w.on) return; const W = w.m.clientWidth, dir = w.dx < 0 ? 1 : -1, to = w.i + dir;
+      const go = to >= 0 && to < TABS.length && (Math.abs(w.dx) > W * .22 || (Math.abs(w.dx) > 40 && Math.abs(w.dx) / Math.max(1, Date.now() - w.t) > .45));
+      if (!go) { w.m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s'; w.m.style.transform = ''; w.m.style.opacity = ''; return; }
+      w.m.style.transition = 'transform .16s ease-in, opacity .16s'; w.m.style.transform = 'translateX(' + (-dir * W * .5) + 'px)'; w.m.style.opacity = '0';
+      setTimeout(() => { w.m.style.transition = 'none'; w.m.style.transform = ''; w.m.style.opacity = ''; w.m.scrollTop = 0; this.setState({ tab: TABS[to], journey: null, editing: false, tabDir: dir }); Sound.fx('tap'); }, 150); };
+    document.addEventListener('touchstart', this._tsT, { passive: true }); document.addEventListener('touchmove', this._tmT, { passive: false });
+    document.addEventListener('touchend', this._teT); document.addEventListener('touchcancel', this._teT);
     this._net = () => this.setState({ offline: navigator.onLine === false });
     window.addEventListener('online', this._net); window.addEventListener('offline', this._net); this._net();
     this._rs = () => this.setState({ vw: window.innerWidth, vh: window.innerHeight });
@@ -1150,6 +1169,7 @@ class Component extends DCLogic {
     window.removeEventListener('online', this._net); window.removeEventListener('offline', this._net);
     document.removeEventListener('pointerdown', this._pd, true); document.removeEventListener('keydown', this._pd, true);
     document.removeEventListener('click', this._snd); document.removeEventListener('visibilitychange', this._vis); Sound.stop();
+    document.removeEventListener('touchstart', this._tsT); document.removeEventListener('touchmove', this._tmT); document.removeEventListener('touchend', this._teT); document.removeEventListener('touchcancel', this._teT);
     document.removeEventListener('touchstart', this._ts); document.removeEventListener('touchmove', this._tm); document.removeEventListener('touchend', this._te); document.removeEventListener('touchcancel', this._te);
     window.removeEventListener('resize', this._rs); window.removeEventListener('keydown', this._key); window.removeEventListener('pointermove', this._look); window.removeEventListener('pointerdown', this._look);
     [this._tt, this._at, this._bt, this._bt2, this._holdT, this._dz, this._pt, this._lookT].forEach(clearTimeout);
@@ -1516,7 +1536,7 @@ class Component extends DCLogic {
       else if (!cancel) this.poke(this.zoneAt(e, g.el));
     };
     return {
-      role: 'button', tabIndex: 0, 'aria-label': this.myName() + '. Tap, stroke or hold' + (where === 'scene' ? ', or drag around.' : '.'),
+      role: 'button', tabIndex: 0, 'data-fid-noswipe': '', 'aria-label': this.myName() + '. Tap, stroke or hold' + (where === 'scene' ? ', or drag around.' : '.'),
       onClick: e => e.stopPropagation(),
       onContextMenu: e => e.preventDefault(),
       onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.poke('head'); } },
@@ -2002,7 +2022,14 @@ class Component extends DCLogic {
         return { tasks: { ...st.tasks, [st.active]: f.id ? list.map(t => t.id === f.id ? { id: t.id, ...rec } : t) : [...list, { id: uid(), ...rec }] }, sheet: null };
       });
     }
-    if (s.sheet === 'upkeep') this.setState(st => ({ upkeep: [...st.upkeep, { id: uid(), name, thing: (f.thing || '').trim() || 'Home', every: Math.max(1, parseInt(f.every) || 3), unit: f.unit || 'months', last: dkey(), owner: f.owner || st.active }], sheet: null, tab: 'upkeep', upFilter: 'all' }));
+    if (s.sheet === 'upkeep' && f.id) {
+      // Editing: keep the due date that was picked; the timer is set so the job falls due on it.
+      const every = Math.max(1, parseInt(f.every) || 3), unit = f.unit || 'months', len = Math.round(unit === 'weeks' ? every * 7 : every * 30.44);
+      const due = /^\d{4}-\d{2}-\d{2}$/.test(f.due || '') ? new Date(f.due + 'T12:00') : null;
+      this.setState(st => ({ upkeep: st.upkeep.map(u => u.id !== f.id ? u : { ...u, name, thing: (f.thing || '').trim() || u.thing, every, unit, owner: f.owner || u.owner || 'both', note: (f.note || '').trim(), ...(due ? { last: dkey(new Date(due.getTime() - len * DAY)) } : {}) }), sheet: null }));
+      return;
+    }
+    if (s.sheet === 'upkeep') this.setState(st => ({ upkeep: [...st.upkeep, { id: uid(), name, ...((f.note || '').trim() ? { note: f.note.trim() } : {}), thing: (f.thing || '').trim() || 'Home', every: Math.max(1, parseInt(f.every) || 3), unit: f.unit || 'months', last: dkey(), owner: f.owner || st.active }], sheet: null, tab: 'upkeep', upFilter: 'all' }));
     if (s.sheet === 'stock') {
       const rec = { name, qty: Math.max(0, parseInt(f.qty) || 0), min: Math.max(0, parseInt(f.min) || 0), unit: (f.unit || '').trim() || 'pcs' };
       this.setState(st => ({ stock: f.id ? st.stock.map(x => x.id === f.id ? { ...x, ...rec } : x) : [...st.stock, { id: uid(), ...rec }], sheet: null }));
@@ -4039,11 +4066,13 @@ class Component extends DCLogic {
       return { ...u, st, left, own,
         ownerName: own === 'both' ? 'Shared' : prof(own).name,
         ownerStyle: { alignSelf: 'flex-start', marginTop: 3, font: "600 11px 'DM Sans',sans-serif", padding: '3px 8px', borderRadius: 10, background: own === 'both' ? '#efe7dd' : C[own], color: INK },
-        meta: 'Every ' + u.every + ' ' + (u.every === 1 ? u.unit.slice(0, -1) : u.unit) + ' · last ' + fmt(u.last),
+        meta: 'Every ' + u.every + ' ' + (u.every === 1 ? u.unit.slice(0, -1) : u.unit) + (u.last > dkey() ? ' · due ' + fmt(dkey(new Date(new Date(u.last + 'T12:00').getTime() + Math.round(len) * DAY))) : ' · last ' + fmt(u.last)),
         chip, chipStyle: { flex: 'none', font: "600 12px 'DM Sans',sans-serif", padding: '6px 10px', borderRadius: 12, background: col[0], color: col[1], whiteSpace: 'nowrap' },
         barStyle: { height: '100%', width: Math.min(100, Math.max(3, el / len * 100)) + '%', background: col[2], borderRadius: 4 },
         done: () => this.upkeepDone(u.id),
-        remove: () => this.setState(x => ({ upkeep: x.upkeep.filter(y => y.id !== u.id) }))
+        remove: () => this.setState(x => ({ upkeep: x.upkeep.filter(y => y.id !== u.id) })),
+        note: u.note || '', editLabel: 'Edit ' + u.name,
+        edit: () => this.openSheet('upkeep', { id: u.id, name: u.name, thing: u.thing, every: String(u.every), unit: u.unit, owner: own, note: u.note || '', due: dkey(new Date(new Date(u.last + 'T12:00').getTime() + Math.round(len) * DAY)) })
       };
     }).sort((a, b) => a.left - b.left);
     const upF = s.upFilter || 'all', upShown = upk.filter(u => upF === 'all' || u.own === upF);
@@ -4170,7 +4199,7 @@ class Component extends DCLogic {
     const segStyle = on => ({ flex: 1, height: 44, borderRadius: 12, border: 'none', cursor: 'pointer', font: "600 15px 'DM Sans',sans-serif", background: on ? '#fffdf9' : 'transparent', boxShadow: on ? '0 1px 3px rgba(42,35,32,.12)' : 'none', color: on ? INK : '#695d55' });
     const toBuyN = low.length + (s.shop || []).filter(x => !x.done).length;
     const tabsDef = [['today', 'Today', 0], ['fidous', N, isBack || ready || myGifts.length ? '!' : 0], ['upkeep', 'Upkeep', overdue], ['stock', 'Shopping', toBuyN], ['journeys', 'Journeys', 0]];
-    const titles = { music: 'Music', weekend: 'Weekend ideas for two', tour: ['Tick off your day', N + '’s world', 'Shared with ' + prof(partnerId).name][f.step || 0], pigname: f.first ? 'Name your piggy' : 'Your piggy', welcome: 'Who’s using this phone?', challenges: 'Challenge list', task: f.id ? 'Edit task' : 'New daily task', upkeep: 'New upkeep job', stock: f.id ? 'Edit item' : 'Track an item', journey: 'New journey', settings: 'Settings', postcard: 'A postcard from Fidous' };
+    const titles = { music: 'Music', weekend: 'Weekend ideas for two', tour: ['Tick off your day', N + '’s world', 'Shared with ' + prof(partnerId).name][f.step || 0], pigname: f.first ? 'Name your piggy' : 'Your piggy', welcome: 'Who’s using this phone?', challenges: 'Challenge list', task: f.id ? 'Edit task' : 'New daily task', upkeep: f.id ? 'Edit job' : 'New upkeep job', stock: f.id ? 'Edit item' : 'Track an item', journey: 'New journey', settings: 'Settings', postcard: 'A postcard from Fidous' };
 
     const sky = skyAt(hr), streak = this.streakOf(s.active);
     const sceneLine = { night: 'Shh, night time', dawn: 'Sunrise over the polder', morning: 'A fresh morning', afternoon: 'Sunny afternoon', evening: 'Golden hour', dusk: 'The lights come on' }[sky.name];
@@ -5285,10 +5314,10 @@ class Component extends DCLogic {
         badgeStyle: badge ? { position: 'absolute', top: 4, left: '50%', marginLeft: 12, minWidth: 18, height: 18, borderRadius: 9, background: C.red, color: '#fff', font: "600 11px/18px 'DM Sans',sans-serif", textAlign: 'center', padding: '0 4px', boxSizing: 'border-box' } : { display: 'none' } })),
       hasSheet: !!s.sheet, sheetTitle: titles[s.sheet] || '',
       sheetTask: s.sheet === 'task', sheetUpkeep: s.sheet === 'upkeep', sheetStock: s.sheet === 'stock', sheetJourney: s.sheet === 'journey', sheetSettings: s.sheet === 'settings', sheetPostcard: s.sheet === 'postcard' && !!pcA,
-      submitLabel: s.sheet === 'weekend' || s.sheet === 'music' ? 'Close' : s.sheet === 'pigname' && f.first ? 'That’s the name!' : s.sheet === 'pigname' || s.sheet === 'settings' || (s.sheet === 'task' && f.id) || (s.sheet === 'stock' && f.id) ? 'Save' : s.sheet === 'postcard' ? 'Lovely' : s.sheet === 'challenges' ? 'Done' : 'Add',
+      submitLabel: s.sheet === 'weekend' || s.sheet === 'music' ? 'Close' : s.sheet === 'pigname' && f.first ? 'That’s the name!' : s.sheet === 'pigname' || s.sheet === 'settings' || (s.sheet === 'task' && f.id) || (s.sheet === 'stock' && f.id) || (s.sheet === 'upkeep' && f.id) ? 'Save' : s.sheet === 'postcard' ? 'Lovely' : s.sheet === 'challenges' ? 'Done' : 'Add',
       closeSheet: () => { if (s.sheet !== 'welcome') this.setState({ sheet: null }); }, submitSheet: () => this.submitSheet(),
       f,
-      setName: this.field('name'), setThing: this.field('thing'), setEvery: this.field('every'), setQty: this.field('qty'), setMin: this.field('min'), setUnit: this.field('unit'), setN1: this.field('n1'), setN2: this.field('n2'),
+      setName: this.field('name'), setThing: this.field('thing'), setDue: this.field('due'), setNote: this.field('note'), upEdit: s.sheet === 'upkeep' && !!f.id, upSheetHint: f.id ? 'Tap Done in the list to restart the timer from today.' : 'The timer starts today. Tap Done to restart it.', setEvery: this.field('every'), setQty: this.field('qty'), setMin: this.field('min'), setUnit: this.field('unit'), setN1: this.field('n1'), setN2: this.field('n2'),
       slotOpts: SLOTS.map(([k, label]) => ({ label, pick: () => this.setF('slot', k), style: segStyle(f.slot === k) })),
       unitOpts: ['weeks', 'months'].map(k => ({ label: k[0].toUpperCase() + k.slice(1), pick: () => this.setF('unit', k), style: segStyle(f.unit === k) })),
       ownerOpts: [...s.profiles.map(p => [p.id, p.name]), ['both', 'Both']].map(([k, label]) => ({ label, pick: () => this.setF('owner', k), style: segStyle(f.owner === k) })),
@@ -5390,7 +5419,7 @@ input,button,select{font-family:inherit;color:inherit}
   </div>
 </sc-if>
 
-<div data-fid-main="1" style="position:absolute;left:0;right:0;top:0;bottom:var(--tabH);overflow-x:hidden;overflow-y:auto;padding-top:{{ topPad }};padding-bottom:{{ playerPad }};box-sizing:border-box;zoom:{{ uiZoom }}">
+<div data-fid-main="1" style="position:absolute;left:0;right:0;top:0;bottom:var(--tabH);overflow-x:hidden;overflow-y:auto;touch-action:pan-y;padding-top:{{ topPad }};padding-bottom:{{ playerPad }};box-sizing:border-box;zoom:{{ uiZoom }}">
 
 <sc-if value="{{ tabToday }}" hint-placeholder-val="{{ true }}">
 <div style="padding:10px 20px 32px;display:flex;flex-direction:column;gap:18px;animation:fidTabIn .32s cubic-bezier(.2,.8,.2,1)">
@@ -5683,14 +5712,15 @@ input,button,select{font-family:inherit;color:inherit}
       <div style="font:600 18px 'Fredoka',sans-serif;padding:0 2px 6px">{{ g.thing }}</div>
       <sc-for list="{{ g.items }}" as="u" hint-placeholder-count="2">
         <div style="display:flex;flex-direction:column;gap:9px;padding:12px 2px 14px;border-top:1px solid #f0e8de">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <button onClick="{{ u.edit }}" aria-label="{{ u.editLabel }}" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:0;border:none;background:none;text-align:left;cursor:pointer;color:inherit;width:100%">
             <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
               <div style="font:600 16px 'DM Sans',sans-serif">{{ u.name }}</div>
               <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">{{ u.meta }}</div>
+              <sc-if value="{{ u.note }}" hint-placeholder-val="{{ false }}"><div style="font:400 13px/1.4 'DM Sans',sans-serif;color:#5e534c;background:#f6f1ea;border-radius:10px;padding:6px 9px;margin-top:2px;white-space:pre-wrap">{{ u.note }}</div></sc-if>
               <span style="{{ u.ownerStyle }}">{{ u.ownerName }}</span>
             </div>
             <span style="{{ u.chipStyle }}">{{ u.chip }}</span>
-          </div>
+          </button>
           <div style="display:flex;align-items:center;gap:12px">
             <div style="flex:1;height:8px;border-radius:4px;background:#f1e9df;overflow:hidden"><div style="{{ u.barStyle }}"></div></div>
             <button onClick="{{ u.done }}" style="height:36px;padding:0 14px;border-radius:18px;border:1px solid #e3d9cd;background:#fffdf9;font:600 14px 'DM Sans',sans-serif;cursor:pointer">Done</button>
@@ -5998,7 +6028,15 @@ input,button,select{font-family:inherit;color:inherit}
             <sc-for list="{{ ownerOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
           </div>
         </div>
-        <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">The timer starts today. Tap Done to restart it.</div>
+        <sc-if value="{{ upEdit }}" hint-placeholder-val="{{ false }}">
+          <label style="display:flex;flex-direction:column;gap:6px;font:600 14px 'DM Sans',sans-serif;color:#695d55">Next due
+            <input type="date" value="{{ f.due }}" onChange="{{ setDue }}" aria-label="Next due date" style="height:52px;border-radius:16px;border:1px solid #e3d9cd;background:#f9f5ef;padding:0 16px;font:500 17px 'DM Sans',sans-serif;color:#2a2320;outline:none;box-sizing:border-box;width:100%">
+          </label>
+        </sc-if>
+        <label style="display:flex;flex-direction:column;gap:6px;font:600 14px 'DM Sans',sans-serif;color:#695d55">Note
+          <textarea value="{{ f.note }}" onChange="{{ setNote }}" rows="3" placeholder="e.g. Filter is in the kitchen drawer" aria-label="Note" style="border-radius:16px;border:1px solid #e3d9cd;background:#f9f5ef;padding:12px 16px;font:400 16px/1.4 'DM Sans',sans-serif;color:#2a2320;outline:none;resize:vertical"></textarea>
+        </label>
+        <div style="font:400 13px 'DM Sans',sans-serif;color:#695d55">{{ upSheetHint }}</div>
       </div>
     </sc-if>
 
