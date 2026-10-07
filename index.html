@@ -925,6 +925,18 @@ class Component extends DCLogic {
     this._pd = () => { Sound.userAt = Date.now(); };
     document.addEventListener('pointerdown', this._pd, true); document.addEventListener('keydown', this._pd, true);
     document.addEventListener('click', this._snd); document.addEventListener('visibilitychange', this._vis);
+    // A sheet (the music player and the others) follows a finger pulling down from its top and closes past a point.
+    this._ts = e => { const p = e.target.closest && e.target.closest('[data-fid-sheet]');
+      this._sw = p && e.touches.length === 1 && this.state.sheet !== 'welcome' && !e.target.closest('input,textarea,select') ? { p, x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), dy: 0, on: false } : null; };
+    this._tm = e => { const w = this._sw; if (!w) return; const dy = e.touches[0].clientY - w.y, dx = e.touches[0].clientX - w.x;
+      if (!w.on) { if (w.p.scrollTop > 0 || dy <= 0 || Math.abs(dx) > dy) { if (Math.abs(dx) > 8 || Math.abs(dy) > 8) this._sw = null; return; }
+        if (e.cancelable) e.preventDefault(); if (dy < 8) return; w.on = true; w.t = Date.now(); w.p.style.transition = 'none'; }
+      if (e.cancelable) e.preventDefault(); w.dy = Math.max(0, dy - 8); w.p.style.transform = 'translateY(' + w.dy + 'px)'; YtAudio.place(); };
+    this._te = () => { const w = this._sw; this._sw = null; if (!w || !w.on) return; const fast = w.dy / Math.max(1, Date.now() - w.t) > .5;
+      if (w.dy > 110 || (fast && w.dy > 40)) { w.p.style.transition = 'transform .2s ease-in'; w.p.style.transform = 'translateY(110%)'; setTimeout(() => { this.setState({ sheet: null }); w.p.style.transition = w.p.style.transform = ''; }, 190); }
+      else { w.p.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; w.p.style.transform = ''; } };
+    document.addEventListener('touchstart', this._ts, { passive: true }); document.addEventListener('touchmove', this._tm, { passive: false });
+    document.addEventListener('touchend', this._te); document.addEventListener('touchcancel', this._te);
     this._net = () => this.setState({ offline: navigator.onLine === false });
     window.addEventListener('online', this._net); window.addEventListener('offline', this._net); this._net();
     this._rs = () => this.setState({ vw: window.innerWidth, vh: window.innerHeight });
@@ -1124,6 +1136,7 @@ class Component extends DCLogic {
     window.removeEventListener('online', this._net); window.removeEventListener('offline', this._net);
     document.removeEventListener('pointerdown', this._pd, true); document.removeEventListener('keydown', this._pd, true);
     document.removeEventListener('click', this._snd); document.removeEventListener('visibilitychange', this._vis); Sound.stop();
+    document.removeEventListener('touchstart', this._ts); document.removeEventListener('touchmove', this._tm); document.removeEventListener('touchend', this._te); document.removeEventListener('touchcancel', this._te);
     window.removeEventListener('resize', this._rs); window.removeEventListener('keydown', this._key); window.removeEventListener('pointermove', this._look); window.removeEventListener('pointerdown', this._look);
     [this._tt, this._at, this._bt, this._bt2, this._holdT, this._dz, this._pt, this._lookT].forEach(clearTimeout);
     (this._toyT || []).forEach(clearTimeout);
@@ -5903,7 +5916,7 @@ input,button,select{font-family:inherit;color:inherit}
 <sc-if value="{{ hasSheet }}" hint-placeholder-val="{{ false }}">
 <div style="position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;justify-content:flex-end">
   <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(42,35,32,.35);animation:fadeIn .2s"></div>
-  <div style="position:relative;background:#fffdf9;border-radius:28px 28px 0 0;padding:12px 22px var(--sheetPad);display:flex;flex-direction:column;gap:14px;animation:sheetUp .28s cubic-bezier(.2,.8,.2,1);max-height:88%;overflow-y:auto;box-sizing:border-box">
+  <div data-fid-sheet="" style="position:relative;background:#fffdf9;border-radius:28px 28px 0 0;padding:12px 22px var(--sheetPad);display:flex;flex-direction:column;gap:14px;animation:sheetUp .28s cubic-bezier(.2,.8,.2,1);max-height:88%;overflow-y:auto;box-sizing:border-box">
     <div style="align-self:center;width:40px;height:5px;border-radius:3px;background:#e3d9cd"></div>
     <div style="font:600 22px 'Fredoka',sans-serif">{{ sheetTitle }}</div>
 
