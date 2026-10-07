@@ -18,6 +18,7 @@
 <body>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>window.__fidWeb = true;</script>
 <script>// Standalone Fidous (its own website, no claude.ai bar): the app's shared database is a Firebase
 // Firestore collection. The household key travels in the link (#k=...) and is remembered on the phone,
 // so only people with your household link can read or write your data.
@@ -736,9 +737,65 @@ function load() {
   return null;
 }
 
-// Background music (music/*.mp3, published next to the page) and small sound effects made with Web Audio.
-// Whenever the app reads Dutch aloud, the music fades out and comes back afterwards.
-const TRACKS = [['tea-and-paperbacks', 'Tea and paperbacks', '2:59', 0], ['velvet-paws-and-raindrops', 'Velvet paws and raindrops', '3:00', 1], ['tea-by-the-water', 'Tea by the water', '2:57', 3]];
+// Background music: a YouTube playlist for each kind of music, played by YouTube's own player (it shows
+// itself in the music sheet and waits behind the app otherwise). Only the website has it; the claude.ai
+// frame cannot load YouTube. Whenever the app reads Dutch aloud, the music fades out and comes back afterwards.
+// [id, name, line, YouTube playlist, cover art]
+const GENRES = [['lofi', 'LoFi', 'Chill beats to study to', 'PLt7bG0K25iXi9KIt6P6yStMp9ObzXjApm', 1], ['piano', 'Piano', 'Calm piano', 'PLagXAMvPJGv379FJfIIVpSTFkL6ZosZo4', 4], ['blues', 'Blues', 'Slow blues', 'PL-tv18z2RAHQ7dZqUQ4hzfLPisn-AvC6H', 5]];
+const GENRE_KEY = 'fidous-genre';
+// Looks like an <audio> element to Sound (paused, volume, currentTime, duration, play, pause).
+const YtAudio = {
+  host: null, player: null, ready: false, failed: false, want: false, blocked: false, state: -1, vol: 0, list: null, jump: false, title: '', errs: 0,
+  get paused() { return !(this.want || this.state === 1 || this.state === 3); },
+  get volume() { return this.vol; },
+  set volume(v) { this.vol = v; if (this.ready) try { this.player.setVolume(Math.round(v * 100)); } catch (e) {} },
+  get currentTime() { try { return this.ready ? this.player.getCurrentTime() || 0 : 0; } catch (e) { return 0; } },
+  set currentTime(t) { if (this.ready) try { this.player.seekTo(t, true); } catch (e) {} },
+  get duration() { try { return this.ready ? this.player.getDuration() || 0 : 0; } catch (e) { return 0; } },
+  boot(onEvent, onTick) {
+    if (this.host || this.failed || typeof document === 'undefined') return;
+    if (!window.__fidWeb) { this.failed = true; return; }
+    const host = this.host = document.createElement('div'), inner = document.createElement('div');
+    host.id = 'fid-yt'; host.setAttribute('aria-label', 'YouTube music player'); host.style.cssText = 'position:fixed;left:0;top:0;width:200px;height:200px;z-index:-1;pointer-events:none;overflow:hidden;border-radius:22px;background:#2a2320';
+    host.appendChild(inner); document.body.appendChild(host);
+    this.onEvent = onEvent;
+    const make = () => { try { this.player = new window.YT.Player(inner, { width: '100%', height: '100%', playerVars: { playsinline: 1, controls: 0, disablekb: 1, rel: 0, iv_load_policy: 3, fs: 0, origin: location.origin },
+      events: { onReady: () => { this.ready = true; this.volume = this.vol; if (this.list) this.setList(this.list); onEvent(); },
+        onStateChange: e => this.changed(e.data), onError: () => { this.errs++; if (this.errs < 8) try { this.player.nextVideo(); } catch (er) {} } } }); } catch (e) { this.failed = true; onEvent(); } };
+    if (window.YT && window.YT.Player) make();
+    else { const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { if (prev) prev(); make(); };
+      const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => { this.failed = true; onEvent(); }; document.head.appendChild(sc); }
+    setInterval(() => { this.place(); if (this.state === 1) onTick(); }, 120);
+  },
+  changed(st) {
+    this.state = st;
+    if (st === 1) { this.want = false; this.blocked = false; this.errs = 0; clearTimeout(this._bt); try { this.title = (this.player.getVideoData() || {}).title || ''; } catch (e) {} }
+    if (this.jump && (st === 1 || st === 5)) { let n = 0; try { n = (this.player.getPlaylist() || []).length; } catch (e) {}
+      if (n > 1) { this.jump = false; try { this.player.setShuffle(true); this.player.setLoop(true); if (st === 1) this.player.playVideoAt(Math.floor(Math.random() * n)); } catch (e) {} } }
+    if (this.onEvent) this.onEvent();
+  },
+  // A new playlist starts on a random song; it is only loaded (not played) until someone asks for music.
+  setList(id) { this.list = id; this.title = ''; this.jump = true; if (!this.ready) return; try { this.player[this.want ? 'loadPlaylist' : 'cuePlaylist']({ list: id, listType: 'playlist' }); } catch (e) {} },
+  play() {
+    this.want = true; if (!this.ready) return;
+    try { this.player.playVideo(); } catch (e) {}
+    // Phones may refuse to start a video the page asks for; then a tap on the video itself starts it.
+    clearTimeout(this._bt); this._bt = setTimeout(() => { if (this.want && this.state !== 1) { this.want = false; this.blocked = true; if (this.onEvent) this.onEvent(); } }, 4000);
+  },
+  pause() { this.want = false; clearTimeout(this._bt); if (this.ready) try { this.player.pauseVideo(); } catch (e) {} if (this.state === 1 || this.state === 3) this.state = 2; },
+  next() { if (this.ready) try { this.player.nextVideo(); } catch (e) {} },
+  back() { if (this.ready) try { this.player.previousVideo(); } catch (e) {} },
+  // The video sits over [data-fid-ytslot] while the music sheet shows one, clipped to the sheet's scroll area.
+  place() {
+    const h = this.host, slot = document.querySelector('[data-fid-ytslot]'); if (!h) return;
+    if (!slot || !this.ready || this.failed) { if (h.style.zIndex !== '-1') h.style.cssText += ';left:0;top:0;width:200px;height:200px;z-index:-1;pointer-events:none;clip-path:none'; return; }
+    const r = slot.getBoundingClientRect(); let sc = slot.parentElement;
+    while (sc && sc !== document.body && !/auto|scroll/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+    const c = sc && sc !== document.body ? sc.getBoundingClientRect() : { top: 0, bottom: innerHeight };
+    const t = Math.max(0, c.top - r.top), b = Math.max(0, r.bottom - c.bottom);
+    h.style.cssText += `;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:90;pointer-events:${t + b >= r.height ? 'none' : 'auto'};clip-path:inset(${t}px 0 ${b}px 0 round 22px)`;
+  }
+};
 const mmss2 = sec => { sec = Math.max(0, Math.floor(sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
 // Dutch voices: the phone's own speech voices, best first. "Enhanced", "Premium" and "Natural" voices
 // sound far more human than the compact defaults; the novelty voices on Apple devices are left out.
@@ -751,21 +808,17 @@ const bestVoice = () => { const all = dutchVoices(); let pick = null; try { cons
   return pick || all.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null; };
 const Sound = {
   userAt: 0, byUser(ms) { return Date.now() - this.userAt < (ms || 2500); },
-  music: true, sfx: true, userPaused: false, dragging: false, vol: (() => { try { const v = parseFloat(localStorage.getItem('fidous-vol')); return v >= 0 && v <= 1 ? v : .32; } catch (e) { return .32; } })(), el: null, ctx: null, i: Math.floor(Math.random() * TRACKS.length), started: false, hushed: false, last: 0, onTrack: null,
+  music: true, sfx: true, userPaused: false, dragging: false, vol: (() => { try { const v = parseFloat(localStorage.getItem('fidous-vol')); return v >= 0 && v <= 1 ? v : .32; } catch (e) { return .32; } })(), el: null, ctx: null, i: (() => { try { const k = GENRES.findIndex(g => g[0] === localStorage.getItem(GENRE_KEY)); return k >= 0 ? k : 0; } catch (e) { return 0; } })(), started: false, hushed: false, last: 0, onTrack: null,
+  get none() { return YtAudio.failed; },
   audio() {
     if (this.el) return this.el;
-    const a = new Audio(); a.preload = 'auto'; a.volume = 0;
-    a.addEventListener('ended', () => this.next());
-    a.addEventListener('error', () => { this.bad = (this.bad || 0) + 1; if (this.bad < TRACKS.length) this.next(); });
-    a.addEventListener('playing', () => { this.bad = 0; });
-    ['play', 'pause', 'loadedmetadata'].forEach(ev => a.addEventListener(ev, () => { this.tick(); if (this.onTrack) this.onTrack(); }));
-    a.addEventListener('timeupdate', () => this.tick());
-    return (this.el = a);
+    YtAudio.boot(() => { if (YtAudio.state === 1) { this.started = true; this.userPaused = false; } this.tick(); if (this.onTrack) this.onTrack(); }, () => this.tick());
+    YtAudio.setList(GENRES[this.i][3]);
+    return (this.el = YtAudio);
   },
-  _go(a) { const p = a.play(); if (p && p.catch) p.catch(() => {}); },
-  start() { if (!this.music || this.hushed || this.focus || (typeof document !== 'undefined' && document.hidden)) return; const a = this.audio(); if (!a.getAttribute('src')) a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; this.started = true; this._go(a); this.fade(this.vol); },
+  _go(a) { a.play(); },
+  start() { if (!this.music || this.hushed || this.focus || (typeof document !== 'undefined' && document.hidden)) return; const a = this.audio(); this.started = true; this._go(a); this.fade(this.vol); },
   stop() { if (this.el) this.fade(0, () => this.el.pause()); },
-  next() { this.i = (this.i + 1) % TRACKS.length; const a = this.audio(); a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; if (this.music && this.started && !this.hushed && !this.focus) { this._go(a); this.fade(this.vol); } if (this.onTrack) this.onTrack(); },
   fade(to, done) {
     const a = this.el; if (!a) return; clearInterval(this._f);
     this._f = setInterval(() => { const d = to - a.volume; if (Math.abs(d) <= .04) { a.volume = to; clearInterval(this._f); if (done) done(); } else a.volume = Math.max(0, Math.min(1, a.volume + Math.sign(d) * .04)); }, 40);
@@ -776,9 +829,10 @@ const Sound = {
   isPlaying() { return !!this.el && !this.el.paused; },
   play() { this.userPaused = false; this.started = true; this.start(); },
   pause() { this.userPaused = true; this.stop(); },
-  playIndex(i) { this.i = (i + TRACKS.length) % TRACKS.length; const a = this.audio(); a.src = 'music/' + TRACKS[this.i][0] + '.mp3'; this.play(); if (this.onTrack) this.onTrack(); },
-  prev() { if (this.el && this.el.currentTime > 3) { this.el.currentTime = 0; this.tick(); } else this.playIndex(this.i - 1); },
-  skip() { this.playIndex(this.i + 1); },
+  // Switch to another kind of music.
+  playGenre(i) { this.i = (i + GENRES.length) % GENRES.length; try { localStorage.setItem(GENRE_KEY, GENRES[this.i][0]); } catch (e) {} const a = this.audio(); a.want = true; a.setList(GENRES[this.i][3]); this.play(); if (this.onTrack) this.onTrack(); },
+  prev() { const a = this.audio(); if (a.currentTime > 3) { a.currentTime = 0; this.tick(); } else a.back(); this.play(); },
+  skip() { this.audio().next(); this.play(); },
   seek(f) { const a = this.el; if (a && a.duration) { a.currentTime = f * a.duration; this.tick(); } },
   setVol(v) { this.vol = v; try { localStorage.setItem('fidous-vol', String(v)); } catch (e) {} if (this.el && !this.el.paused && !this.hushed) { clearInterval(this._f); this.el.volume = v; } },
   // Progress bars and clocks on the page update themselves through data attributes.
@@ -845,7 +899,7 @@ class Component extends DCLogic {
   componentDidMount() {
     if (typeof window !== 'undefined') window.__fidApp = this;
     const u0 = toUnits(this.state); this._boot = {}; Object.keys(u0).forEach(id => { this._boot[id] = JSON.stringify(u0[id]); }); this._wrote = {};
-    Sound.music = this.state.uiMusic !== false; Sound.sfx = this.state.uiFx !== false;
+    Sound.music = this.state.uiMusic !== false; Sound.sfx = this.state.uiFx !== false; if (Sound.music) Sound.audio();
     Sound.onTrack = () => { clearTimeout(this._sndT); this._sndT = setTimeout(() => { this.forceUpdate(); Sound.tick(); }, 30); };
     this._snd = e => { this._touched = true; if (!Sound.started) Sound.start(); const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled && Date.now() - Sound.last > 60) Sound.fx('tap'); };
     this._vis = () => { if (document.hidden) Sound.stop(); else if (Sound.started && !Sound.userPaused) Sound.start(); };
@@ -2125,7 +2179,7 @@ class Component extends DCLogic {
   }
   // Cover art for each song, drawn on a 120×120 canvas.
   trackArt(i, size, live) {
-    i = (TRACKS[i] || [])[3] ?? i;
+    i = (GENRES[i] || [])[4] ?? i;
     const h = React.createElement, d = (st, ...k) => h('div', { style: { position: 'absolute', ...st } }, ...k);
     const rain = (n, c) => Array.from({ length: n }, (_, j) => d({ left: (j * 37) % 118, top: -20, width: 1.5, height: 12, borderRadius: 1, background: c, animation: live ? `fidRain ${1 + (j % 3) * .25}s ${-(j * .17)}s linear infinite` : 'none', transform: live ? 'none' : `translateY(${20 + (j * 29) % 100}px)` }));
     const steam = x => [0, 1].map(j => d({ left: x + j * 9, top: 30, width: 4, height: 16, borderRadius: 3, background: 'rgba(255,255,255,.75)', animation: live ? `fidFloat 2.4s ${j * .8}s ease-out infinite` : 'none', opacity: live ? 0 : .6 }));
@@ -2142,7 +2196,18 @@ class Component extends DCLogic {
         d({ left: 0, top: 88, width: 120, height: 32, background: 'linear-gradient(180deg,oklch(0.5 0.06 230),oklch(0.42 0.06 235))' }), ...[0, 1, 2].map(j => d({ left: 10 + j * 38, top: 96 + (j % 2) * 8, width: 22, height: 2, borderRadius: 1, background: 'rgba(255,255,255,.4)' })), ...rain(16, 'rgba(255,255,255,.65)')],
       [d({ inset: 0, background: 'linear-gradient(180deg,oklch(0.86 0.07 190),oklch(0.92 0.06 120))' }), d({ left: 70, top: 16, width: 30, height: 30, borderRadius: 15, background: 'oklch(0.93 0.11 85)', boxShadow: '0 0 20px oklch(0.95 0.1 85)' }),
         d({ left: 0, top: 66, width: 120, height: 54, background: 'oklch(0.65 0.09 200)' }), ...[0, 1, 2].map(j => d({ left: -20, top: 76 + j * 12, width: 160, height: 4, background: 'radial-gradient(ellipse 8px 2px at 50% 100%,rgba(255,255,255,.6) 96%,transparent) 0 0/20px 4px', animation: live ? `fidSwim ${4 + j}s ease-in-out infinite` : 'none' })),
-        d({ left: 8, top: 74, width: 54, height: 8, background: 'oklch(0.6 0.07 55)' }), ...[14, 50].map(x => d({ left: x, top: 82, width: 5, height: 30, background: 'oklch(0.5 0.06 50)' })), ...cup(20, 50, 'oklch(0.75 0.12 350)'), ...steam(28)]][((i % 4) + 4) % 4];
+        d({ left: 8, top: 74, width: 54, height: 8, background: 'oklch(0.6 0.07 55)' }), ...[14, 50].map(x => d({ left: x, top: 82, width: 5, height: 30, background: 'oklch(0.5 0.06 50)' })), ...cup(20, 50, 'oklch(0.75 0.12 350)'), ...steam(28)],
+      // Piano: a grand piano by the window with notes drifting up.
+      [d({ inset: 0, background: 'linear-gradient(170deg,oklch(0.93 0.04 80),oklch(0.84 0.07 55))' }), d({ left: 70, top: 10, width: 38, height: 46, borderRadius: '19px 19px 3px 3px', background: 'oklch(0.86 0.06 220)', boxShadow: 'inset 0 0 0 3px #fffdf9' }), d({ left: 88, top: 10, width: 3, height: 46, background: '#fffdf9' }),
+        d({ left: 0, top: 96, width: 120, height: 24, background: 'oklch(0.6 0.08 40)' }), d({ left: 10, top: 50, width: 86, height: 30, borderRadius: '6px 30px 4px 4px', background: '#2b2522' }), d({ left: 14, top: 74, width: 78, height: 12, borderRadius: 2, background: '#fffdf9' }),
+        ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].filter(j => [0, 1, 3, 4, 5, 7, 8, 10].includes(j)).map(j => d({ left: 18 + j * 6, top: 74, width: 3.5, height: 7, background: '#2b2522' })), ...[20, 84].map(x => d({ left: x, top: 86, width: 5, height: 12, background: '#2b2522' })),
+        ...[[30, 34, 0], [52, 26, .8], [74, 38, 1.6]].map(([x, y, dl]) => d({ left: x, top: y, font: "600 16px 'DM Sans',sans-serif", color: 'oklch(0.5 0.1 30)', animation: live ? `fidFloat 2.4s ${dl}s ease-out infinite` : 'none', opacity: live ? 0 : .8 }, '♪'))],
+      // Blues: a guitar under the moon on a deep blue night.
+      [d({ inset: 0, background: 'linear-gradient(180deg,oklch(0.3 0.08 265),oklch(0.45 0.1 255))' }), d({ left: 80, top: 14, width: 24, height: 24, borderRadius: 12, background: 'oklch(0.95 0.05 90)', boxShadow: '0 0 18px oklch(0.95 0.05 90 / .6)' }),
+        ...[[14, 20], [40, 12], [60, 30], [24, 44], [104, 50]].map(([x, y], j) => d({ left: x, top: y, width: 2.5, height: 2.5, borderRadius: 2, background: '#fffdf9', opacity: .8, animation: live ? `fidTwinkle 1.6s ${j * .3}s infinite` : 'none' })),
+        d({ left: 0, top: 100, width: 120, height: 20, background: 'oklch(0.25 0.06 265)' }),
+        d({ left: 41, top: 22, width: 7, height: 54, borderRadius: 2, background: 'oklch(0.4 0.06 50)', transform: 'rotate(28deg)', transformOrigin: '50% 100%' }), d({ left: 62, top: 22, width: 9, height: 12, borderRadius: 2, background: '#2b2522', transform: 'rotate(28deg)' }),
+        d({ left: 30, top: 58, width: 30, height: 28, borderRadius: '50%', background: 'oklch(0.62 0.15 50)' }), d({ left: 24, top: 72, width: 40, height: 34, borderRadius: '50%', background: 'oklch(0.6 0.15 45)' }), d({ left: 38, top: 76, width: 11, height: 11, borderRadius: 6, background: '#2b2522' }), d({ left: 33, top: 93, width: 20, height: 4, borderRadius: 2, background: '#2b2522' })]][((i % 6) + 6) % 6];
     return h('div', { style: { position: 'relative', width: size, height: size, overflow: 'hidden', flex: 'none' } }, h('div', { style: { position: 'absolute', left: 0, top: 0, width: 120, height: 120, transform: `scale(${size / 120})`, transformOrigin: '0 0', overflow: 'hidden' } }, ...art));
   }
   // A round die-cut sticker; locked ones are a dashed outline with how far along you are.
@@ -4438,7 +4503,7 @@ class Component extends DCLogic {
       sw('Evening glow', 'A warm, dimmer look after sunset', s.uiGlow !== false, () => this.setUi({ uiGlow: s.uiGlow === false })),
       sw('Larger text', 'Makes everything a bit bigger on this phone', !!s.uiBig, () => this.setUi({ uiBig: !s.uiBig })),
       sw('Calmer motion', 'Fewer animations on this phone', !!s.uiCalm, () => this.setUi({ uiCalm: !s.uiCalm })),
-      sw('Music', s.uiMusic !== false ? 'Now playing: ' + TRACKS[Sound.i][1] : 'Calm songs in the background, paused while Dutch is read aloud', s.uiMusic !== false, () => { const on = s.uiMusic === false; this.setUi({ uiMusic: on }); Sound.setMusic(on); }),
+      sw('Music', s.uiMusic !== false ? 'Now playing: ' + (YtAudio.title || GENRES[Sound.i][1]) : 'LoFi, piano or blues from YouTube, paused while Dutch is read aloud', s.uiMusic !== false, () => { const on = s.uiMusic === false; this.setUi({ uiMusic: on }); Sound.setMusic(on); }),
       h('button', { key: 'player', onClick: () => this.setState({ sheet: 'music' }), style: { height: 40, border: 'none', background: 'none', font: "500 14px 'DM Sans',sans-serif", color: '#5e534c', cursor: 'pointer' } }, 'Open the music player ›'),
       sw('Sound effects', 'Little sounds when you tap, earn coins and celebrate', s.uiFx !== false, () => { const on = s.uiFx === false; Sound.sfx = on; this.setUi({ uiFx: on }); if (on) Sound.fx('sparkle'); }),
       h('button', { onClick: () => this.setState({ sheet: 'tour', f: { step: 0 } }), style: { height: 40, border: 'none', background: 'none', font: "500 14px 'DM Sans',sans-serif", color: '#5e534c', cursor: 'pointer' } }, 'Show the welcome tour again'),
@@ -4491,12 +4556,12 @@ class Component extends DCLogic {
     const moreTodayEl = s.tab !== 'today' || !simpleToday ? null : h('button', { onClick: () => this.setState({ todayMore: !s.todayMore }), 'aria-expanded': !!s.todayMore, style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, padding: '10px 16px', borderRadius: 18, border: '1.5px dashed #d6cabc', background: 'none', cursor: 'pointer', font: "600 14px 'DM Sans',sans-serif", color: '#5e534c' } },
       s.todayMore ? 'Show less' : 'More for today · ' + moreBits.join(', '), h('span', { style: { display: 'inline-block', transform: s.todayMore ? 'rotate(180deg)' : 'none', transition: 'transform .2s' } }, '⌄'));
     // Music: a mini player above the tab bar (or a little spinning disc), and the full player in a sheet.
-    const playing = Sound.isPlaying(), trk = TRACKS[Sound.i], musicOn = s.uiMusic !== false;
+    const playing = Sound.isPlaying(), gen = GENRES[Sound.i], musicOn = s.uiMusic !== false, yt = YtAudio, songT = yt.title || gen[1] + ' · ' + gen[2];
     const svgI = (d0, sz) => h('svg', { width: sz || 18, height: sz || 18, viewBox: '0 0 24 24', 'aria-hidden': true }, h('path', { d: d0, fill: 'currentColor' }));
     const I_PLAY = 'M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z', I_PAUSE = 'M6 4h4.5v16H6zM13.5 4H18v16h-4.5z', I_NEXT = 'M5 5.5v13a1 1 0 0 0 1.5.86L16 13.6V18h2.5V6H16v4.4L6.5 4.64A1 1 0 0 0 5 5.5z', I_PREV = 'M19 5.5v13a1 1 0 0 1-1.5.86L8 13.6V18H5.5V6H8v4.4l9.5-5.76A1 1 0 0 1 19 5.5z';
     const eq = (on, c) => E('span', { display: 'inline-flex', alignItems: 'flex-end', gap: 1.5, height: 10 }, ...[0, .2, .4].map(dl => h('span', { key: dl, style: { width: 2.5, height: 10, borderRadius: 1, background: c || 'oklch(0.62 0.15 350)', transformOrigin: '50% 100%', transform: on ? 'none' : 'scaleY(.35)', animation: on ? `fidEq .9s ${dl}s ease-in-out infinite` : 'none' } })));
     const curT = Sound.el ? Sound.el.currentTime : 0, durT = Sound.el && Sound.el.duration ? Sound.el.duration : 0, frac = durT ? curT / durT : 0;
-    const showPlayer = !s.story && !s.drill && !s.routeOpen && !s.game && s.sheet !== 'welcome' && s.sheet !== 'pigname' && !(s.tab === 'fidous' && s.deco);
+    const showPlayer = typeof window !== 'undefined' && !!window.__fidWeb && !yt.failed && !s.story && !s.drill && !s.routeOpen && !s.game && s.sheet !== 'welcome' && s.sheet !== 'pigname' && !(s.tab === 'fidous' && s.deco);
     const roundB = (sz, dark) => ({ width: sz, height: sz, flex: 'none', borderRadius: sz / 2, border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? INK : 'transparent', color: dark ? '#fffdf9' : INK });
     let playerEl = null;
     if (showPlayer && (s.uiDisc ?? simpleToday)) {
@@ -4508,8 +4573,8 @@ class Component extends DCLogic {
         h('button', { onClick: () => this.openSheet('music', {}), 'aria-label': 'Open the music player', style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, border: 'none', background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' } },
           h('div', { style: { width: 42, height: 42, borderRadius: 12, overflow: 'hidden', flex: 'none', boxShadow: '0 2px 6px rgba(42,35,32,.15)' } }, this.trackArt(Sound.i, 42, playing)),
           E('div', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
-            E('span', { font: "600 14px 'DM Sans',sans-serif", color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, trk[1]),
-            E('span', { display: 'flex', alignItems: 'center', gap: 6, font: "500 11.5px 'DM Sans',sans-serif", color: '#7a6e66', whiteSpace: 'nowrap' }, eq(playing), !musicOn ? 'Music is off · tap play' : Sound.hushed ? 'Paused while Dutch is read' : h('span', null, h('span', { 'data-fid-time': '' }, mmss2(curT)), ' / ' + trk[2])))),
+            E('span', { font: "600 14px 'DM Sans',sans-serif", color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, songT),
+            E('span', { display: 'flex', alignItems: 'center', gap: 6, font: "500 11.5px 'DM Sans',sans-serif", color: '#7a6e66', whiteSpace: 'nowrap' }, eq(playing), !musicOn ? 'Music is off · tap play' : yt.blocked ? 'Tap here, then tap the video' : Sound.hushed ? 'Paused while Dutch is read' : h('span', null, gen[1] + ' · ', h('span', { 'data-fid-time': '' }, mmss2(curT)), ' / ', h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : '–:––'))))),
         h('button', { onClick: () => this.musicToggle(), 'aria-label': playing ? 'Pause music' : 'Play music', style: roundB(40, true) }, svgI(playing ? I_PAUSE : I_PLAY, 18)),
         h('button', { onClick: () => Sound.skip(), 'aria-label': 'Next song', style: roundB(36) }, svgI(I_NEXT, 18)),
         h('button', { onClick: () => this.setUi({ uiDisc: true }), 'aria-label': 'Fold the player away', style: { ...roundB(30), color: '#a89b90' } }, h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round', 'aria-hidden': true }, h('path', { d: 'M6 9l6 6 6-6' }))),
@@ -4519,15 +4584,16 @@ class Component extends DCLogic {
     if (s.sheet === 'music') {
       const range = { width: '100%', accentColor: 'oklch(0.62 0.15 350)', cursor: 'pointer', height: 24, margin: 0 };
       musicEl = E('div', { display: 'flex', flexDirection: 'column', gap: 14 },
-        E('div', { position: 'relative', alignSelf: 'center', width: 'min(100%,250px)', aspectRatio: '1', borderRadius: 28, overflow: 'hidden', boxShadow: '0 14px 34px rgba(42,35,32,.22)' },
-          h('div', { style: { position: 'absolute', inset: 0, display: 'flex' } }, h('div', { style: { width: '100%', height: '100%', display: 'flex' } }, h('div', { style: { transform: 'scale(2.0834)', transformOrigin: '0 0' } }, this.trackArt(Sound.i, 120, playing)))),
-          h('div', { style: { position: 'absolute', right: 6, bottom: 2, animation: playing ? 'fidGroove 1.2s ease-in-out infinite' : 'none', transformOrigin: '50% 100%' } }, this.pig({ mood: playing ? 'joy' : 'ok', sex: myPig.sex, wear: s.wear, still: true, scale: .5 }))),
+        // YouTube's player is laid over this box; the cover art shows until it is ready.
+        h('div', { 'data-fid-ytslot': '', style: { position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 22, overflow: 'hidden', background: '#2a2320', boxShadow: '0 14px 34px rgba(42,35,32,.22)', flex: 'none' } },
+          h('div', { style: { position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)', aspectRatio: '1' } }, h('div', { style: { position: 'absolute', inset: 0, overflow: 'hidden' } }, h('div', { style: { width: 120, height: 120, transform: 'scale(' + ((s.vw && !framed ? Math.min(s.vw, 440) : 390) - 40) / 120 + ')', transformOrigin: '0 0' } }, this.trackArt(Sound.i, 120, playing)))),
+          E('span', { position: 'absolute', left: 12, bottom: 10, font: "600 12px 'DM Sans',sans-serif", padding: '5px 10px', borderRadius: 10, background: 'rgba(255,253,249,.92)', color: INK }, yt.failed ? 'Music needs internet' : 'Loading YouTube…')),
         E('div', { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' },
-          E('span', { font: "600 22px/1.2 'Fredoka',sans-serif", color: INK }, trk[1]),
-          E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Fidous radio · song ' + (Sound.i + 1) + ' of ' + TRACKS.length)),
+          E('span', { font: "600 20px/1.25 'Fredoka',sans-serif", color: INK, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }, yt.title || gen[1]),
+          E('span', { font: "500 13px 'DM Sans',sans-serif", color: '#7a6e66' }, 'Fidous radio · ' + gen[1] + ' · from YouTube')),
         E('div', { display: 'flex', flexDirection: 'column', gap: 2 },
           h('input', { type: 'range', min: 0, max: 1000, defaultValue: Math.round(frac * 1000), 'data-fid-seek': '', 'aria-label': 'Song position', onPointerDown: () => { Sound.dragging = true; }, onPointerUp: () => { Sound.dragging = false; }, onChange: e => Sound.seek(+e.target.value / 1000), style: range }),
-          E('div', { display: 'flex', justifyContent: 'space-between', font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, h('span', { 'data-fid-time': '' }, mmss2(curT)), h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : trk[2]))),
+          E('div', { display: 'flex', justifyContent: 'space-between', font: "500 12px 'DM Sans',sans-serif", color: '#7a6e66' }, h('span', { 'data-fid-time': '' }, mmss2(curT)), h('span', { 'data-fid-dur': '' }, durT ? mmss2(durT) : '–:––'))),
         E('div', { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22 },
           h('button', { onClick: () => Sound.prev(), 'aria-label': 'Previous song', style: roundB(48) }, svgI(I_PREV, 26)),
           h('button', { onClick: () => this.musicToggle(), 'aria-label': playing ? 'Pause music' : 'Play music', style: { ...roundB(68, true), boxShadow: '0 8px 18px rgba(42,35,32,.25)' } }, svgI(playing ? I_PAUSE : I_PLAY, 30)),
@@ -4535,12 +4601,12 @@ class Component extends DCLogic {
         E('div', { display: 'flex', alignItems: 'center', gap: 10, color: '#7a6e66' },
           svgI('M4 9v6h4l5 4V5L8 9H4z', 18), h('input', { type: 'range', min: 0, max: 100, defaultValue: Math.round(Sound.vol * 100), 'aria-label': 'Volume', onChange: e => Sound.setVol(+e.target.value / 100), style: range }), svgI('M4 9v6h4l5 4V5L8 9H4zm11.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM13 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z', 20)),
         E('div', { display: 'flex', flexDirection: 'column', gap: 4, background: '#f6f1ea', borderRadius: 20, padding: 6 },
-          ...TRACKS.map(([, name, len], i) => { const cur = i === Sound.i;
-            return h('button', { key: 'tr' + i, onClick: () => Sound.playIndex(i), 'aria-label': 'Play ' + name, 'aria-current': cur ? 'true' : undefined, style: { display: 'flex', alignItems: 'center', gap: 12, padding: 6, borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left', background: cur ? '#fffdf9' : 'transparent', boxShadow: cur ? '0 1px 4px rgba(42,35,32,.08)' : 'none' } },
-              h('div', { style: { width: 40, height: 40, borderRadius: 10, overflow: 'hidden', flex: 'none' } }, this.trackArt(i, 40, false)),
-              E('span', { flex: 1, minWidth: 0, font: (cur ? 600 : 500) + " 14px 'DM Sans',sans-serif", color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }, name),
-              cur && playing ? eq(true) : E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#a89b90' }, len)); })),
-        E('span', { ...mutedS, textAlign: 'center' }, musicOn ? 'The music pauses by itself while Dutch is read aloud, then carries on.' : 'Music is switched off on this phone. Press play to turn it back on.'));
+          ...GENRES.map(([, name, line], i) => { const cur = i === Sound.i;
+            return h('button', { key: 'gn' + i, onClick: () => Sound.playGenre(i), 'aria-label': 'Play ' + name, 'aria-current': cur ? 'true' : undefined, style: { display: 'flex', alignItems: 'center', gap: 12, padding: 6, borderRadius: 14, border: 'none', cursor: 'pointer', textAlign: 'left', background: cur ? '#fffdf9' : 'transparent', boxShadow: cur ? '0 1px 4px rgba(42,35,32,.08)' : 'none' } },
+              h('div', { style: { width: 44, height: 44, borderRadius: 11, overflow: 'hidden', flex: 'none' } }, this.trackArt(i, 44, cur && playing)),
+              E('span', { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }, E('span', { font: (cur ? 600 : 500) + " 15px 'DM Sans',sans-serif", color: INK }, name), E('span', { font: "400 12.5px 'DM Sans',sans-serif", color: '#7a6e66' }, line)),
+              cur && playing ? eq(true) : null); })),
+        E('span', { ...mutedS, textAlign: 'center' }, yt.blocked ? 'Your phone wants one tap on the video itself to start the music.' : musicOn ? 'Songs come from YouTube, so music needs internet. It pauses by itself while Dutch is read aloud and during quizzes.' : 'Music is switched off on this phone. Press play to turn it back on.'));
     }
     // Piggy stories: a library of covers, then a full-screen reader with a speaking prompt and a quiz.
     let storyEl = null;

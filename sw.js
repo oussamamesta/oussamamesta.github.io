@@ -1,7 +1,7 @@
 // Fidous offline: keeps the app and its libraries on the phone so it opens without internet.
 // The page itself is fetched fresh when online (so updates arrive), and served from the phone when not.
 // Your data does not go through here: Firestore keeps its own offline copy and syncs when you are back online.
-var VERSION = /*VERSION*/'47b17c4978'/*END*/;
+var VERSION = /*VERSION*/'5c8e7802e0'/*END*/;
 var CACHE = 'fidous-' + VERSION;
 var CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192-v2.png', 'icon-512-v2.png', 'apple-touch-icon-v2.png',
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js',
