@@ -1701,13 +1701,19 @@ class Component extends DCLogic {
     const s = this.state, who = (s.deco && s.deco.who) || s.active, area = this.decoArea();
     if (PAINT_SLOTS.includes(it.slot)) { this.setState({ decoPrev: { u: 'preview', id: it.id, area, who, paint: it.slot }, decoSel: null }); return; }
     const pos = this.dropPos(it);
-    this.setState({ decoPrev: { u: 'preview', id: it.id, area, who, ...pos }, decoSel: 'preview' });
+    this.setState({ decoPrev: { u: 'preview', id: it.id, area, who, ...pos }, decoSel: 'preview' }, () => this.revealDecoBar());
+  }
+  // The pinned room covers the top of the page: scroll so the piece's buttons (Buy, Flip, Put away) sit just below it.
+  revealDecoBar() {
+    requestAnimationFrame(() => { const bar = document.querySelector('[data-fid-decobar]'), main = document.querySelector('[data-fid-main]'), room = this.scrollRef.current;
+      if (!bar || !main || !room) return; const rb = room.getBoundingClientRect().bottom, b = bar.getBoundingClientRect(), mb = main.getBoundingClientRect().bottom;
+      if (b.top < rb + 8 || b.bottom > mb - 8) main.scrollBy({ top: b.top - rb - 12, behavior: 'smooth' }); });
   }
   placeOwned(id) {
     const it = decoById(id), area = this.decoArea(), pos = this.dropPos(it), u = uid();
     if (PAINT_SLOTS.includes(it.slot)) { this.setHome(hm => ({ ...hm, areas: { ...hm.areas, [area]: { ...hm.areas[area], paint: { ...(hm.areas[area].paint || {}), [it.slot]: id } } } })); return; }
     this.setHome(hm => ({ ...hm, areas: { ...hm.areas, [area]: { ...hm.areas[area], items: [...(hm.areas[area].items || []), { u, id, ...pos }] } } }));
-    this.setState({ decoSel: u });
+    this.setState({ decoSel: u }, () => this.revealDecoBar());
     this.react('stars', 'Ooh, right there!', false);
   }
   buyPreview() {
@@ -1740,20 +1746,34 @@ class Component extends DCLogic {
     this.setState({ decoSel: null }); this.toastMsg('Put away in storage');
   }
   clearPaint(slot) { const area = this.decoArea(); this.setHome(hm => { const pt = { ...(hm.areas[area].paint || {}) }; delete pt[slot]; return { ...hm, areas: { ...hm.areas, [area]: { ...hm.areas[area], paint: pt } } }; }); this.setState({ decoPrev: null }); }
+  // Drag a piece around the room. Small pieces get a bigger grab area; near the left or right edge the room
+  // scrolls along so a piece can travel to the other side.
   itemDown(e, inst, sc) {
     e.stopPropagation(); e.preventDefault();
-    const st = { u: inst.u, cx: e.clientX, cy: e.clientY, x: inst.x, y: inst.y, moved: false, sc: (sc || 1) * (this.state.uiBig ? 1.12 : 1) };
+    const box = this.scrollRef.current, st = { u: inst.u, cx: e.clientX, cy: e.clientY, px: e.clientX, py: e.clientY, x: inst.x, y: inst.y, moved: false, sc: (sc || 1) * (this.state.uiBig ? 1.12 : 1), sl: box ? box.scrollLeft : 0 };
     const it = decoById(inst.id);
-    this.setState({ decoSel: inst.u });
-    const move = ev => {
-      const dx = (ev.clientX - st.cx) / st.sc, dy = (ev.clientY - st.cy) / st.sc;
+    if (this.state.decoSel !== inst.u) this.setState({ decoSel: inst.u }, () => this.revealDecoBar());
+    const place = () => {
+      const dx = (st.px - st.cx + (box ? box.scrollLeft - st.sl : 0)) / st.sc, dy = (st.py - st.cy) / st.sc;
       if (!st.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
       st.moved = true;
       const x = Math.round(Math.max(-it.box[2] * .4, Math.min(AREA_W - it.box[2] * .6, st.x + dx))), y = Math.round(Math.max(-it.box[3] * .3, Math.min(300 - it.box[3] * .5, st.y + dy)));
+      if (x === st.nx && y === st.ny) return;
       st.nx = x; st.ny = y;
       this.setState({ decoDrag: { u: inst.u, x, y } });
     };
+    const edge = () => {
+      if (!box || !st.moved) return 0; const r = box.getBoundingClientRect();
+      return st.px < r.left + 40 ? -1 : st.px > r.right - 40 ? 1 : 0;
+    };
+    const tick = () => {
+      const k = edge(); if (k) { const before = box.scrollLeft; box.scrollLeft += k * 7; if (box.scrollLeft !== before) place(); }
+      st.raf = requestAnimationFrame(tick);
+    };
+    st.raf = requestAnimationFrame(tick);
+    const move = ev => { st.px = ev.clientX; st.py = ev.clientY; place(); };
     const up = () => {
+      cancelAnimationFrame(st.raf);
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
       if (st.moved) this.updInst(inst.u, { x: st.nx, y: st.ny });
       this.setState({ decoDrag: null });
@@ -3377,9 +3397,9 @@ class Component extends DCLogic {
     }).filter(Boolean).sort((a, b) => a.z - b.z);
     const items = list.map(({ inst, it, pos }) => {
       const [bx, by, bw, bh] = it.box, sel = D && D.sel === inst.u, editable = D && (inst.u === 'preview' || D.mine);
-      return h('div', { key: inst.u, style: { position: 'absolute', left: pos.x - bx, top: pos.y - by, width: 350, height: 300, pointerEvents: 'none', transform: inst.f ? 'scaleX(-1)' : 'none', transformOrigin: (bx + bw / 2) + 'px 0', zIndex: it.slot === 'ceil' ? 3 : 1, opacity: inst.u === 'preview' ? .92 : 1 } },
+      return h('div', { key: inst.u, style: { position: 'absolute', left: pos.x - bx, top: pos.y - by, width: 350, height: 300, pointerEvents: 'none', transform: inst.f ? 'scaleX(-1)' : 'none', transformOrigin: (bx + bw / 2) + 'px 0', zIndex: sel ? 8 : it.slot === 'ceil' ? 3 : 1, opacity: inst.u === 'preview' ? .92 : 1 } },
         ...this.deco(it),
-        editable ? h('div', { onPointerDown: e => this.itemDown(e, inst, o.scale), style: { position: 'absolute', left: bx - 4, top: by - 4, width: bw + 8, height: bh + 8, pointerEvents: 'auto', cursor: 'grab', touchAction: 'none', borderRadius: 10, outline: sel ? '2.5px dashed ' + INK : 'none', outlineOffset: -2, background: sel ? 'rgba(255,253,249,.18)' : 'transparent', animation: inst.u === 'preview' && !(D.drag && D.drag.u === 'preview') ? 'fidBob 1.6s ease-in-out infinite' : 'none' } }) : null);
+        editable ? h('div', { onPointerDown: e => this.itemDown(e, inst, o.scale), 'data-fid-piece': inst.u, style: { position: 'absolute', left: bx - Math.max(4, (56 - bw) / 2), top: by - Math.max(4, (56 - bh) / 2), width: Math.max(bw + 8, 56), height: Math.max(bh + 8, 56), pointerEvents: 'auto', cursor: 'grab', touchAction: 'none', borderRadius: 10, outline: sel ? '2.5px dashed ' + INK : 'none', outlineOffset: -2, background: sel ? 'rgba(255,253,249,.18)' : 'transparent', animation: inst.u === 'preview' && !(D.drag && D.drag.u === 'preview') ? 'fidBob 1.6s ease-in-out infinite' : 'none' } }) : null);
     });
     const giftEls = (o.gifts || []).slice(0, 3).map((g, i) => h('button', { key: 'g' + g.id, onClick: e => { e.stopPropagation(); this.openGift(g); }, 'aria-label': 'Open the gift from ' + g.fromName,
       style: { position: 'absolute', left: `calc(${o.pigX}% + ${60 + i * 50}px)`, top: 232, width: 44, height: 44, padding: 0, border: 'none', background: 'none', cursor: 'pointer', zIndex: 3, animation: `fidGift 1.4s ${i * .2}s ease-in-out infinite` } },
@@ -4283,13 +4303,13 @@ class Component extends DCLogic {
       const small = (label, fn, dark) => h('button', { key: label, onClick: fn, style: btnS(dark, { flex: 1, minWidth: 0, height: 42, padding: '0 8px', font: "600 13px 'DM Sans',sans-serif" }) }, label);
       if (P) {
         const it = decoById(P.id);
-        bar = E('div', { ...barS, background: 'oklch(0.95 0.05 85)' },
+        bar = h('div', { 'data-fid-decobar': '', style: { ...barS, background: 'oklch(0.95 0.05 85)' } },
           E('div', { display: 'flex', alignItems: 'center', gap: 8 }, styleDot(it.style), E('span', { font: "600 15px 'DM Sans',sans-serif", flex: 1, minWidth: 0 }, it.name), E('span', { font: "600 14px 'DM Sans',sans-serif", color: C.amberInk }, it.price + ' coins')),
           E('span', mutedS, P.paint ? 'This is how it looks. Like it?' : 'Drag it to the right spot, then ' + (decoOther ? 'send it.' : 'buy it.')),
           E('div', { display: 'flex', gap: 6 }, ...(P.paint ? [] : [small('Flip', () => this.flipSel())]), small(decoOther ? 'Gift it' : 'Buy', () => this.buyPreview(), true), small('Cancel', () => this.setState({ decoPrev: null, decoSel: null }))));
       } else if (selInst) {
         const it = decoById(selInst.id);
-        bar = E('div', { ...barS, background: '#f6f1ea' },
+        bar = h('div', { 'data-fid-decobar': '', style: { ...barS, background: '#f6f1ea' } },
           E('div', { display: 'flex', alignItems: 'center', gap: 8 }, styleDot(it.style), E('span', { font: "600 15px 'DM Sans',sans-serif", flex: 1 }, it.name), E('span', mutedS, 'Drag to move')),
           E('div', { display: 'flex', gap: 6 }, small('Flip', () => this.flipSel()), small('Put away', () => this.storeSel()), small('Done', () => this.setState({ decoSel: null }), true)),
           E('div', { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }, E('span', { font: "500 12px 'DM Sans',sans-serif", color: '#695d55' }, 'Move to'),
@@ -5280,7 +5300,9 @@ class Component extends DCLogic {
       toggleEditing: () => this.setState({ editing: !s.editing }),
       openAddTask: () => this.openSheet('task', { slot: hr < 12 ? 'morning' : hr < 18 ? 'day' : 'evening' }),
       adv, hasPostcards: postcards.length > 0, postcards, pcView,
-      sceneEl, sceneH: 300 * sScale + 'px', sceneBtns, isGarden: area === 'garden', gameNote: s.deco ? '' : 'Swipe sideways to see the whole ' + (AREAS.find(a => a.id === area) || AREAS[0]).name.toLowerCase() + '. ' + (area === 'garden' ? 'Games pay up to 10 coins a day · ' + (10 - gUsed) + ' left today' : 'Tap, stroke or hold ' + N + '. Drag ' + pr.him + ' around, or tap the floor to call ' + pr.him + '.'),
+      sceneEl, sceneH: 300 * sScale + 'px',
+      // While decorating, the room stays pinned at the top so a piece picked further down is always in view.
+      scenePos: s.deco ? 'sticky' : 'relative', sceneTop: framed ? '50px' : 'max(8px, env(safe-area-inset-top))', sceneZ: s.deco ? 6 : 'auto', sceneShadow: s.deco ? '0 10px 24px rgba(42,35,32,.18)' : 'none', sceneBtns, isGarden: area === 'garden', gameNote: s.deco ? '' : 'Swipe sideways to see the whole ' + (AREAS.find(a => a.id === area) || AREAS[0]).name.toLowerCase() + '. ' + (area === 'garden' ? 'Games pay up to 10 coins a day · ' + (10 - gUsed) + ' left today' : 'Tap, stroke or hold ' + N + '. Drag ' + pr.him + ' around, or tap the floor to call ' + pr.him + '.'),
       sceneOpts: AREAS.map(a => ({ label: a.name.replace(' room', ''), pick: () => { this._sceneChosen = true; this.setState({ scene: a.id, decoPrev: null, decoSel: null }); const el = this.scrollRef.current; if (el) el.scrollLeft = 0; }, style: { ...segStyle(area === a.id), font: "600 13px 'DM Sans',sans-serif" } })),
       shopTabOpts: [['clothes', 'Clothes'], ['toys', 'Toys']].map(([k, label]) => ({ label, pick: () => this.setState({ shopTab: k }), style: segStyle(s.shopTab === k) })),
       shopClothes: s.shopTab === 'clothes', shopItems: s.shopTab === 'toys' ? toyCards : wardrobe,
@@ -5592,7 +5614,7 @@ input,button,select{font-family:inherit;color:inherit}
     <div style="display:flex;gap:6px;background:#ece4da;border-radius:16px;padding:4px">
       <sc-for list="{{ sceneOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
     </div>
-    <div style="border-radius:30px;overflow:hidden;height:{{ sceneH }};display:flex;justify-content:center;background:#efe6da;position:relative">{{ sceneEl }}</div>
+    <div style="border-radius:30px;overflow:hidden;height:{{ sceneH }};display:flex;justify-content:center;background:#efe6da;position:{{ scenePos }};top:{{ sceneTop }};z-index:{{ sceneZ }};box-shadow:{{ sceneShadow }}">{{ sceneEl }}</div>
     {{ decoEl }}
     <sc-if value="{{ notDecorating }}" hint-placeholder-val="{{ true }}">
     <div style="display:flex;gap:8px">
